@@ -18,9 +18,14 @@ import java.io.Serializable;
  */
 public abstract class ControlledTaskBean extends AbstractControlledTask implements Serializable {
 
-    private final int maxMessageBufferLen = 10000;
-    
-    private final StringBuilder messages = new StringBuilder(maxMessageBufferLen + (maxMessageBufferLen/10));
+    private final int maxMessageBufferLen;
+    private final StringBuilder messages;
+  
+    public ControlledTaskBean()
+    {
+        this.maxMessageBufferLen = 10000;
+        this.messages = new StringBuilder(this.maxMessageBufferLen + this.maxMessageBufferLen / 10);
+    }
     
     public void setStart(boolean start) {
         if(start) {

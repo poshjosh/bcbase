@@ -55,16 +55,20 @@ public class XLogger {
     }
     
     public Logger logger(Class aClass) {
-        if(isAnnonymous()) {
-            return Logger.getAnonymousLogger();
-        }else if(isRootOnly()) {
-            final String name = rootLoggerName == null ? temp() : rootLoggerName;
-            return Logger.getLogger(name);
-        }else{
-            return Logger.getLogger(aClass.getName());
-        }
+        return logger(aClass.getName());
     }
-    
+  
+    public Logger logger(String name) {
+        if (isAnnonymous()) {
+            return Logger.getAnonymousLogger();
+        }    
+        if (isRootOnly()) {
+            name = this.rootLoggerName == null ? "" : this.rootLoggerName;
+            return Logger.getLogger(name);
+        }
+        return Logger.getLogger(name);
+    }
+  
     public boolean isLoggable(Level level, Class aClass) {
         return logger(aClass).isLoggable(level);
     }
@@ -76,7 +80,7 @@ public class XLogger {
     public void log(Level level, String msg, Class aClass, Object o1, Object o2, Object o3, Object o4) {
         Logger logger = logger(aClass);
         if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), msg, new Object[]{o1, o2, o3, o4});
+        logger.logp(level, aClass.getName(), "", msg, new Object[]{o1, o2, o3, o4});
     }
     
     /**
@@ -86,7 +90,7 @@ public class XLogger {
     public void log(Level level, String msg, Class aClass, Object o1, Object o2, Object o3) {
         Logger logger = logger(aClass);
         if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), msg, new Object[]{o1, o2, o3});
+        logger.logp(level, aClass.getName(), "", msg, new Object[]{o1, o2, o3});
     }
     
     /**
@@ -96,7 +100,7 @@ public class XLogger {
     public void log(Level level, String msg, Class aClass, Object o1, Object o2) {
         Logger logger = logger(aClass);
         if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), msg, new Object[]{o1, o2});
+        logger.logp(level, aClass.getName(), "", msg, new Object[]{o1, o2});
     }
 
     /**
@@ -106,7 +110,7 @@ public class XLogger {
     public void log(Level level, String msg, Class aClass, Object o1) {
         Logger logger = logger(aClass);
         if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), msg, o1);
+        logger.logp(level, aClass.getName(), "", msg, o1);
     }
 
     /**
@@ -116,7 +120,7 @@ public class XLogger {
     public void log(Level level, String msg, Class aClass) {
         Logger logger = logger(aClass);
         if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), msg);
+        logger.logp(level, aClass.getName(), "", msg);
     }
     
     /**
@@ -126,39 +130,35 @@ public class XLogger {
     public void log(Level level, String msg, Class aClass, Throwable t) {
         Logger logger = logger(aClass);
         if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), msg, t);
+        logger.logp(level, aClass.getName(), "", msg, t);
     }
     
     /**
      * Same as calling:<br/>
      * Logger.getLogger(aClass.getName()).logp(Level,aClass.getName(),"",Throwable.toString());
      */
-    public void logSimple(Level level, Class aClass, Throwable t) {
+    public void logSimple(Level level, Class aClass, Throwable t)
+    {
         Logger logger = logger(aClass);
-        if(!logger.isLoggable(level)) return;
-        logger.logp(level, aClass.getName(), temp(), t.toString());
+        if (!logger.isLoggable(level)) return;
+        logger.logp(level, aClass.getName(), "", t.toString());
     }
-    
+  
     public void entering(Class aClass, String srcMethod, Object o1) {
-        if(!isLoggable(Level.FINER, aClass)) return;
+        if (!isLoggable(Level.FINER, aClass)) return;
         logger(aClass).entering(aClass.getName(), srcMethod, o1);
     }
-
+  
     public void exiting(Class aClass, String srcMethod, Object o1) {
-        if(!isLoggable(Level.FINER, aClass)) return;
+        if (!isLoggable(Level.FINER, aClass)) return;
         logger(aClass).exiting(aClass.getName(), srcMethod, o1);
     }
-    
+  
     public void throwing(Class aClass, String srcMethod, Throwable t) {
-        if(!isLoggable(Level.FINER, aClass)) return;
+        if (!isLoggable(Level.FINER, aClass)) return;
         logger(aClass).throwing(aClass.getName(), srcMethod, t);
     }
     
-    private String temp() {
-        return ""; 
-//        return "Free memory: "+Runtime.getRuntime().freeMemory();
-    }
-
     /**
      * Sets the Log level of all Loggers (and all their handlers) except those 
      * whose names start with:
@@ -170,7 +170,15 @@ public class XLogger {
      * </ul>
      * @param logLevel The new log level to set
      */
-    public static void setLogLevel(Level logLevel) {
+    public void setLogLevel(Level logLevel) {
+       
+        if (isRootOnly()) {
+            String rln = getRootLoggerName();
+            if (rln != null) {
+                setLogLevel(rln, logLevel);
+            }
+            return;
+        }
         
 // Iterating over this often throws ConcurrentModificationException
 //        
@@ -197,7 +205,7 @@ public class XLogger {
      * registered Handlers to the specified Level.
      * @return The old Loggers Log level before this operation
      */
-    public static Level setLogLevel(String loggerName, Level newLevel) {
+    public Level setLogLevel(String loggerName, Level newLevel) {
         
         final Logger mLogger = Logger.getLogger(loggerName);
         final Level oldLevel = mLogger.getLevel();
@@ -233,6 +241,7 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1}", XLogge
     }
 
     public void setRootLoggerName(String rootLoggerName) {
+        this.setRootOnly(true);
         this.rootLoggerName = rootLoggerName;
     }
 }
