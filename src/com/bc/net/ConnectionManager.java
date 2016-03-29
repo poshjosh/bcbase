@@ -16,7 +16,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +63,12 @@ public class ConnectionManager {
      */
     private boolean getCookies;
     
+    private boolean mobile;
+    
+    private boolean generateRandomUserAgent;
+    
+    private UserAgents userAgents;
+    
     private int connectTimeout = -1;
     private int readTimeout = -1;
     
@@ -83,9 +88,10 @@ public class ConnectionManager {
     
     private RetryConnectionFilter retryAfterExceptionFilter;
     
+    private ConnectionManager.ConnectionHandler connectionHandler;
+    
     public ConnectionManager() {
-// Setting this caused the server to return code 400:Bad request        
-//        this.chunkedStreamingBuffer = 8192;
+        this(0, 0);
     }
     
     public ConnectionManager(int maxRetrials, long retrialInterval) {
@@ -95,8 +101,9 @@ public class ConnectionManager {
             this.retryAfterExceptionFilter = new RetryConnectionFilter(
                     maxRetrials, retrialInterval);
         }
+        this.generateRandomUserAgent = true;
+        this.userAgents = new UserAgents();
     }
-    
     
     public void reset() {
         this.setRunning(false);
@@ -251,7 +258,7 @@ log(Level.FINER, "@stop(int). Is running: {0}", this.isStopped());
 this.mb4 = Runtime.getRuntime().freeMemory();
 this.tb4 = System.currentTimeMillis();
 
-        Map<String, Object> requestProperties = this.getRequestProperties(charset, requestPropertyKey, requestPropertyValue);
+        Map<String, Object> requestProperties = this.getRequestProperties(url, charset, requestPropertyKey, requestPropertyValue);
         
         return this.getInputStream(url, requestProperties, outputParameters, encode);
     }
@@ -267,7 +274,7 @@ this.tb4 = System.currentTimeMillis();
 this.mb4 = Runtime.getRuntime().freeMemory();
 this.tb4 = System.currentTimeMillis();
 
-        Map<String, Object> requestProperties = this.getRequestProperties(charset, requestPropertyKey, requestPropertyValue);
+        Map<String, Object> requestProperties = this.getRequestProperties(url, charset, requestPropertyKey, requestPropertyValue);
         
         return this.getInputStream(url, requestProperties, outputParameters, outputFiles, outputUrls, boundary, encode);
     }
@@ -399,7 +406,7 @@ this.log(Level.FINER, "Charset: {0}", charset);
     public URLConnection openConnection(URL url, boolean doOutput, boolean doInput, 
             String charset, String key, Object value) throws IOException {
 
-        Map<String, Object> requestProperties = (Map<String, Object>)this.getRequestProperties(charset, key, value);
+        Map<String, Object> requestProperties = (Map<String, Object>)this.getRequestProperties(url, charset, key, value);
         
         return this.openConnection(url, doOutput, doInput, requestProperties);
     }
@@ -429,7 +436,7 @@ this.log(Level.FINER, "Charset: {0}", charset);
     public OutputStream getOutputStream(URL url, boolean doOutput, boolean doInput,
             String charset, String key, Object value) throws IOException {
 
-        Map<String, Object> requestProperties = (Map<String, Object>)this.getRequestProperties(charset, key, value);
+        Map<String, Object> requestProperties = (Map<String, Object>)this.getRequestProperties(url, charset, key, value);
         
         return this.getOutputStream(url, doOutput, doInput, requestProperties);
     }
@@ -489,8 +496,6 @@ this.log(Level.FINER, "Charset: {0}", charset);
     
     protected InputStream getInputStream(URLConnection connection) throws IOException {
 
-        this.reset();
-        
         this.setRunning(true);
 
         HttpURLConnection urlConn = null;
@@ -514,10 +519,10 @@ log("Failed to retrieve response code. Reason:", e);
             this.updateCookies(connection);
         }
         
-// http://www.oracle.com/technetwork/java/javase/compatibility-417013.html
-// At the page search for: Invalid Http Response        
         try{
 
+// http://www.oracle.com/technetwork/java/javase/compatibility-417013.html
+// At the page search for: Invalid Http Response .. for possiblity of -1 response code
             if(this.responseCode == -1 || this.responseCode >= 400) {
 
                 if(urlConn != null) {
@@ -543,7 +548,7 @@ log(Level.FINER,
 "Done getting input stream. Spent, time: {0}, memory: {1}", 
 System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
             
-            return this.inputStream;
+            return this.connectionHandler == null ? this.inputStream : this.connectionHandler.getInputStream(this);
             
         }catch(IOException e) {
             
@@ -561,6 +566,10 @@ log(Level.WARNING, "{0}, Retrying URL: {1}", e, connection.getURL());
             
             this.setRunning(false);
         }
+    }
+    
+    public static interface ConnectionHandler {
+        InputStream getInputStream(ConnectionManager connMgr) throws IOException;
     }
     
     protected void updateCookies(URLConnection conn) {
@@ -609,6 +618,12 @@ log(Level.FINER, "Streaming FixedLength: {0}, Chunked: {1}",
             }
         }
 
+        if(this.generateRandomUserAgent) {
+            if(requestProperties == null) {
+                requestProperties = new HashMap<>();
+            }
+            this.addRandomUserAgent(connection.getURL(), requestProperties);
+        }
         this.populateConnection(connection, requestProperties);
 
         if(this.isAddCookies()) {
@@ -618,31 +633,23 @@ log(Level.FINER, "Streaming FixedLength: {0}, Chunked: {1}",
         return connection;
     }
     
-    private Map<String, Object> getRequestProperties(String charset, String key, Object value) {
-        Map requestProperties;
+    private Map<String, Object> getRequestProperties(URL url, String charset, String key, Object value) {
+        Map requestProperties = new HashMap();
         if(charset != null) {
-            if(value != null) {
-                requestProperties = new HashMap(2, 1.0f);
-                requestProperties.put(key, value);
-                requestProperties.put("Accept-Charset", charset);
-                requestProperties = Collections.unmodifiableMap(requestProperties);                
-            }else{
-                requestProperties = Collections.singletonMap("Accept-Charset", charset);
-            }
-        }else{
-            if(value == null) {
-                requestProperties = Collections.EMPTY_MAP;
-            }else{
-                requestProperties = Collections.singletonMap(key, value);
-            }
+            requestProperties.put("Accept-Charset", charset);
+        }
+        if(value != null) {
+            requestProperties.put(key, value);
+        }
+        if(this.generateRandomUserAgent) {
+            this.addRandomUserAgent(url, requestProperties);
         }
 log(Level.FINER, "Initialized request properties. Spent, time {0}, memory: {1}, properties: {2}", 
 System.currentTimeMillis()-tb4, mb4-Runtime.getRuntime().freeMemory(), requestProperties);
         return requestProperties;
     }
     
-    private void populateConnection(URLConnection connection, 
-            Map<String, Object> requestProperties) {
+    private void populateConnection(URLConnection connection, Map<String, Object> requestProperties) {
         if(requestProperties == null) {
             return;
         }
@@ -656,6 +663,23 @@ log(Level.FINER, "Settting request property: [{0}={1}]", key, val);
 log(Level.FINER, 
 "Populated connection with request properties. Spent, time: {0}, memory: {1}", 
 System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
+    }
+    
+    private Object addRandomUserAgent(URL url, Map<String, Object> requestProperties) {
+        if(this.generateRandomUserAgent) {
+            Object userAgent = requestProperties.get("User-Agent");
+            if(userAgent == null) {
+                userAgent = requestProperties.get("user-agent");
+                if(userAgent == null) {
+                    userAgent = url == null ? this.userAgents.getAny(mobile) :
+                            this.userAgents.getAny(url, mobile);
+                    return requestProperties.put("User-Agent", userAgent);
+                }
+            }else{
+                return userAgent;
+            }
+        }
+        return null;
     }
 
     /**
@@ -1129,5 +1153,37 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams
 
     public void setReadTimeout(int readTimeout) {
         this.readTimeout = readTimeout;
+    }
+
+    public ConnectionHandler getConnectionHandler() {
+        return connectionHandler;
+    }
+
+    public void setConnectionHandler(ConnectionHandler connectionHandler) {
+        this.connectionHandler = connectionHandler;
+    }
+
+    public boolean isMobile() {
+        return mobile;
+    }
+
+    public void setMobile(boolean mobile) {
+        this.mobile = mobile;
+    }
+
+    public boolean isGenerateRandomUserAgent() {
+        return generateRandomUserAgent;
+    }
+
+    public void setGenerateRandomUserAgent(boolean generateRandomUserAgent) {
+        this.generateRandomUserAgent = generateRandomUserAgent;
+    }
+
+    public UserAgents getUserAgents() {
+        return userAgents;
+    }
+
+    public void setUserAgents(UserAgents userAgents) {
+        this.userAgents = userAgents;
     }
 }
