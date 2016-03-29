@@ -52,6 +52,7 @@ public abstract class AbstractStoppableTask
   }
   
 
+  @Override
   public void run()
   {
     XLogger.getInstance().log(Level.FINER, "Before doRun(). {0}", getClass(), this);
