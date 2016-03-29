@@ -1,5 +1,7 @@
 package com.bc.util;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -22,6 +24,23 @@ import java.util.logging.Level;
  * @since    2.0
  */
 public class Util {
+
+    /**
+     * @param url 
+     * @return The base URL of the method argument or <code>null</code> if the 
+     * method argument is a malformed URL
+     */
+    public static String getBaseURL(String url) {
+        try{
+            return getBaseURL(new URL(url));
+        }catch(MalformedURLException e) {
+            return null;
+        }
+    }
+    
+    public static String getBaseURL(URL url) {
+        return url.getProtocol() + "://" + url.getHost();
+    }
 
     /**
      * @param path The path whose file name extension will be returned

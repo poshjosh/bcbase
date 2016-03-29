@@ -1,6 +1,9 @@
 package com.bc.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -172,29 +175,15 @@ public class XLogger {
      */
     public void setLogLevel(Level logLevel) {
        
-        if (isRootOnly()) {
-            String rln = getRootLoggerName();
-            if (rln != null) {
-                setLogLevel(rln, logLevel);
-            }
-            return;
+        List<String> loggerNames;
+        if(this.isRootOnly()) {
+            loggerNames = Collections.singletonList(this.getRootLoggerName());
+        }else{
+            loggerNames = this.getLoggerNames(new XLogger.JavaLoggerNamesFilter());
         }
         
-// Iterating over this often throws ConcurrentModificationException
-//        
-//        Enumeration<String> loggerNames = LogManager.getLogManager().getLoggerNames();
-        
-        final LoggingMXBean logManager = LogManager.getLoggingMXBean();
-        final List<String> loggerNames = logManager.getLoggerNames();
         synchronized(loggerNames) {
             for(String loggerName:loggerNames) {
-                if(loggerName.isEmpty() ||
-                        loggerName.startsWith("java") || loggerName.startsWith("javax") ||
-                        loggerName.startsWith("org") || loggerName.startsWith("org") || 
-                        loggerName.startsWith("com.sun") || loggerName.startsWith("com.oracle")
-                        ) { 
-                    continue;
-                }
                 setLogLevel(loggerName, logLevel);
             }
         }
@@ -203,6 +192,8 @@ public class XLogger {
     /**
      * Sets the Log level of the Logger with the specified name and all its
      * registered Handlers to the specified Level.
+     * @param loggerName
+     * @param newLevel
      * @return The old Loggers Log level before this operation
      */
     public Level setLogLevel(String loggerName, Level newLevel) {
@@ -228,12 +219,83 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1}", XLogge
         return oldLevel;
     }
 
-    public boolean isRootOnly() {
-        return rootOnly;
+    public void setLogLevelForConsoleHandlers(Level newLevel) {
+        
+        List<String> loggerNames;
+        if(this.isRootOnly()) {
+            loggerNames = Collections.singletonList(this.getRootLoggerName());
+        }else{
+            loggerNames = this.getLoggerNames(null);
+        }
+        
+        for(String loggerName:loggerNames) {
+            Handler [] handlers = logger(loggerName).getHandlers();
+            if(handlers != null) {
+                for(Handler handler:handlers) {
+                    if(handler instanceof ConsoleHandler) {
+                        handler.setLevel(newLevel);
+                    }
+                }
+            }
+        }
     }
 
-    public void setRootOnly(boolean rootOnly) {
-        this.rootOnly = rootOnly;
+    public List<String> getLoggerNames(Filter<String> loggerNameFilter) {
+// Iterating over this often throws ConcurrentModificationException
+//        
+//        Enumeration<String> loggerNames = LogManager.getLogManager().getLoggerNames();
+        final LoggingMXBean logManager = LogManager.getLoggingMXBean();
+        final List<String> loggerNames = logManager.getLoggerNames();
+        List<String> output;
+        if(loggerNameFilter != null) {
+            output = new ArrayList<>(loggerNames.size());
+            for(String loggerName:loggerNames) {
+                if(loggerNameFilter.accept(loggerName)) {
+                    output.add(loggerName);
+                }
+            }
+        }else{
+            output = new ArrayList(loggerNames);
+        }
+//System.out.println(this.getClass().getName()+". Logger names: "+output);        
+        return output;
+    }
+    
+    /**
+     * Filters all names which start with:
+     * <ul>
+     *   <li><tt>java.</tt></li>
+     *   <li><tt>javax.</tt></li>
+     *   <li><tt>com.sun.</tt></li>
+     *   <li><tt>com.oracle.</tt></li>
+     * </ul>
+     */
+    public static class JavaLoggerNamesFilter implements Filter<String> {
+        /**
+         * Filters all names which start with:
+         * <ul>
+         *   <li><tt>java.</tt></li>
+         *   <li><tt>javax.</tt></li>
+         *   <li><tt>com.sun.</tt></li>
+         *   <li><tt>com.oracle.</tt></li>
+         * </ul>
+         * @param loggerName
+         * @return 
+         */
+        @Override
+        public boolean accept(String loggerName) {
+            return !(loggerName.isEmpty() ||
+                    loggerName.startsWith("java") || loggerName.startsWith("javax") ||
+                    loggerName.startsWith("com.sun") || loggerName.startsWith("com.oracle"));
+        }
+    }
+    
+    public static interface Filter<E> {
+        boolean accept(E e); 
+    }
+    
+    public boolean isRootOnly() {
+        return rootLoggerName != null;
     }
 
     public String getRootLoggerName() {
@@ -241,7 +303,6 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1}", XLogge
     }
 
     public void setRootLoggerName(String rootLoggerName) {
-        this.setRootOnly(true);
         this.rootLoggerName = rootLoggerName;
     }
 }
