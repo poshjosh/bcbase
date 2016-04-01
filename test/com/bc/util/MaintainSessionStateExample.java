@@ -104,7 +104,7 @@ System.out.println("Message: "+titleAndMessage[1]);
         ParseJob parseJob = new ParseJob();
         
         try{
-            title = parseJob.innerHtml(true).accept(HTML.Tag.TITLE).separator("\n").parse(input).toString();
+            title = parseJob.plainText(true).accept(HTML.Tag.TITLE).separator("\n").parse(input).toString();
         }catch(IOException e) {
             title = "";
         }
@@ -115,7 +115,7 @@ System.out.println("Message: "+titleAndMessage[1]);
         
         String myMessage;
         try{
-            myMessage = parseJob.innerHtml(true).accept(as).separator("\n").parse(input).toString();
+            myMessage = parseJob.plainText(true).accept(as).separator("\n").parse(input).toString();
         }catch(IOException e) {
             myMessage = "";
         }
