@@ -2,11 +2,18 @@ package com.bc.dom;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
@@ -24,6 +31,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -146,7 +154,56 @@ public class XMLUtils {
                     return nodeValue.split(separatorRegex);
     }
 
-    public static void save(Document doc, String path) {
+    public static boolean save(Document doc) {
+        
+        return save(doc, doc.getDocumentURI());
+    }
+    
+    public static boolean save(Document doc, String uriString) {
+        if(doc == null || uriString == null) {
+            throw new NullPointerException();
+        }
+        try{
+            URI uri = new URI(uriString);
+            boolean saved = save(doc, Paths.get(uri).toFile());
+            if(!saved) {
+                URL url = uri.toURL();
+                try{
+                    return save(doc, url.openConnection().getOutputStream());
+                }catch(IOException ioe) {
+                    logger.log(Level.WARNING, "Error saving document to: "+uriString, ioe);
+                    return false;
+                }
+            }else{
+                return saved;
+            }
+        }catch(URISyntaxException | MalformedURLException e) {
+            logger.log(Level.WARNING, "Error saving document to: "+uriString, e);
+            return false;
+        }
+    }
+    
+    public static boolean save(Document doc, File file) {
+        if(doc == null || file == null) {
+            throw new NullPointerException();
+        }
+        try{
+            return save(doc, new FileOutputStream(file), file.getAbsolutePath());
+        }catch(FileNotFoundException e) {
+            logger.log(Level.WARNING, "Error saving document to: "+file, e);
+            return false;
+        }
+    }
+
+    public static boolean save(Document doc, OutputStream out) {
+        return save(doc, out, null);
+    }
+    
+    private static boolean save(Document doc, OutputStream out, String path) {
+        if(doc == null || out == null) {
+            throw new NullPointerException();
+        }
+        boolean saved = false;
         try{
             // Use a Transformer for output
             TransformerFactory tFactory = TransformerFactory.newInstance();
@@ -160,18 +217,18 @@ public class XMLUtils {
 
             DOMSource source = new DOMSource(doc);
 
-            FileOutputStream fos = new FileOutputStream(path);
-            BufferedOutputStream bos = new BufferedOutputStream(fos);
+            BufferedOutputStream bos = new BufferedOutputStream(out);
             OutputStreamWriter osw = new OutputStreamWriter(bos, "UTF-8"); // XML encoding
             
             try{
-                           
                 
                 StreamResult result = new StreamResult(osw);
 
                 transformer.transform(source, result);
 
                 osw.flush();
+                
+                saved = true;
                 
             }finally{
                 if(osw != null) try{ osw.close(); }catch(IOException e){
@@ -180,92 +237,76 @@ public class XMLUtils {
                 if(bos != null) try{ bos.close(); }catch(IOException e){
                     logger.log(Level.WARNING, "", e);
                 }
-                if(fos != null) try{ fos.close(); }catch(IOException e){
+                if(out != null) try{ out.close(); }catch(IOException e){
                     logger.log(Level.WARNING, "", e);
                 }
             }
         }catch(IOException e) {
-            logger.log(Level.WARNING, "", e);
+            logger.log(Level.WARNING, "Error saving document"+(path==null?"":" to: "+path), e);
         } catch (TransformerConfigurationException e) {
             logger.log(Level.WARNING, "Transformer Factory Error", e);
         } catch (TransformerException e) {
             logger.log(Level.WARNING, "Transformation Error", e);
         }
+        
+        return saved;
     }
 
-    public static Document load(String uri) {
-            Document doc = null;
-            try {
-                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = factory.newDocumentBuilder();
-                    doc = docBuilder.parse(uri);
-Logger.getLogger(XMLUtils.class.getName()).log(Level.FINE, 
-"Doc URL: {0}, Base URI: {1}, Path: {2}", 
-new Object[]{doc.getDocumentURI(), doc.getBaseURI(), uri});                    
-            }
-            catch (SAXException e) {
-                    logger.log(Level.WARNING, "Could not parse XML at: "+uri, e);
-            }
-            catch (IOException e) {
-                    // Lighter logging for this, no stack trace
-                    logger.log(Level.WARNING, "{0}. Could not read: {1}, reason: {2}", 
-                    new Object[]{logger.getName(), uri, e});
-            }
-            catch (ParserConfigurationException e) {
-                    logger.log(Level.SEVERE, "Could not obtain SAX parser", e);
-                    throw new RuntimeException("Could not obtain SAX parser");
-            }
-            return doc;
+    public static Document load(String uriString) {
+        if (uriString == null) {
+            throw new IllegalArgumentException("URI cannot be null");
+        }
+        InputSource in = new InputSource(uriString);
+        return load(in, uriString);
     }
     
     public static Document load(File file) {
-            Document doc = null;
-            try {
-                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = factory.newDocumentBuilder();
-                    doc = docBuilder.parse(file);
-Logger.getLogger(XMLUtils.class.getName()).log(Level.FINE, 
-"Doc URL: {0}, Base URI: {1}, Path: {2}", 
-new Object[]{doc.getDocumentURI(), doc.getBaseURI(), file});                    
-            }
-            catch (SAXException e) {
-                    logger.log(Level.WARNING, "Could not parse XML at: "+file, e);
-            }
-            catch (IOException e) {
-                    // Lighter logging for this, no stack trace
-                    logger.log(Level.WARNING, "{0}. Could not read: {1}, reason: {2}", 
-                    new Object[]{logger.getName(), file, e});
-            }
-            catch (ParserConfigurationException e) {
-                    logger.log(Level.SEVERE, "Could not obtain SAX parser", e);
-                    throw new RuntimeException("Could not obtain SAX parser");
-            }
-            return doc;
+        if (file == null) {
+            throw new IllegalArgumentException("File cannot be null");
+        }
+        //convert file to appropriate URI, f.toURI().toASCIIString()
+        //converts the URI to string as per rule specified in
+        //RFC 2396,
+        String uriString = file.toURI().toASCIIString();
+        InputSource in = new InputSource(uriString);
+        return load(in, uriString);
     }
 
     public static Document load(InputStream in) {
-            Document doc = null;
-            try {
-                    DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-                    DocumentBuilder docBuilder = factory.newDocumentBuilder();
-                    doc = docBuilder.parse(in);
-Logger.getLogger(XMLUtils.class.getName()).log(Level.FINE, 
-"Doc URL: {0}, Base URI: {1}", 
+        
+        return load(new InputSource(in), null);
+    }
+    
+    public static Document load(InputSource in) {
+        
+        return load(in, null);
+    }
+    
+    private static Document load(InputSource in, String uriString) {
+        Document doc = null;
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = factory.newDocumentBuilder();
+            doc = docBuilder.parse(in);
+            if(doc != null) {
+                if(doc.getDocumentURI() == null) {
+                    doc.setDocumentURI(uriString);
+                }
+logger.log(Level.FINE, "Doc URL: {0}, Base URI: {1}", 
 new Object[]{doc.getDocumentURI(), doc.getBaseURI()});                    
             }
-            catch (SAXException e) {
-                    logger.log(Level.WARNING, "Could not parse XML", e);
-            }
-            catch (IOException e) {
-                    // Lighter logging for this, no stack trace
-                    logger.log(Level.WARNING, "{0}. Could not read XML, reason: {2}", 
-                    new Object[]{logger.getName(), e});
-            }
-            catch (ParserConfigurationException e) {
-                    logger.log(Level.SEVERE, "Could not obtain SAX parser", e);
-                    throw new RuntimeException("Could not obtain SAX parser");
-            }
-            return doc;
+        }
+        catch (SAXException e) {
+            logger.log(Level.WARNING, "Could not parse XML"+(uriString==null?"":" at: "+uriString), e);
+        }
+        catch (IOException e) {
+            // Lighter logging for this, no stack trace
+            logger.log(Level.WARNING, "Could not read XML"+(uriString==null?"":" at: "+uriString)+", reason: {0}", e.toString());
+        }
+        catch (ParserConfigurationException e) {
+            logger.log(Level.SEVERE, "Could not obtain SAX parser to parse XML"+(uriString==null?"":" at: "+uriString), e);
+        }
+        return doc;
     }
     
     public static StringBuilder stringValue(Node node, int maxLen) {
