@@ -1,7 +1,6 @@
 package com.bc.util;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
@@ -67,7 +66,6 @@ public class XLogger {
         }    
         if (isRootOnly()) {
             name = this.rootLoggerName == null ? "" : this.rootLoggerName;
-            return Logger.getLogger(name);
         }
         return Logger.getLogger(name);
     }
@@ -163,33 +161,6 @@ public class XLogger {
     }
     
     /**
-     * Sets the Log level of all Loggers (and all their handlers) except those 
-     * whose names start with:
-     * <ul>
-     *   <li><tt>java.</tt></li>
-     *   <li><tt>javax.</tt></li>
-     *   <li><tt>com.sun.</tt></li>
-     *   <li><tt>com.oracle.</tt></li>
-     * </ul>
-     * @param logLevel The new log level to set
-     */
-    public void setLogLevel(Level logLevel) {
-       
-        List<String> loggerNames;
-        if(this.isRootOnly()) {
-            loggerNames = Collections.singletonList(this.getRootLoggerName());
-        }else{
-            loggerNames = this.getLoggerNames(new XLogger.JavaLoggerNamesFilter());
-        }
-        
-        synchronized(loggerNames) {
-            for(String loggerName:loggerNames) {
-                setLogLevel(loggerName, logLevel);
-            }
-        }
-    }
-    
-    /**
      * Sets the Log level of the Logger with the specified name and all its
      * registered Handlers to the specified Level.
      * @param loggerName
@@ -198,10 +169,10 @@ public class XLogger {
      */
     public Level setLogLevel(String loggerName, Level newLevel) {
         
-        final Logger mLogger = Logger.getLogger(loggerName);
+        final Logger mLogger = logger(loggerName);
         final Level oldLevel = mLogger.getLevel();
         
-XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1}", XLogger.class, newLevel, loggerName);
+XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and handlers", XLogger.class, newLevel, loggerName);
         
         mLogger.setLevel(newLevel);
         
@@ -218,26 +189,28 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1}", XLogge
         
         return oldLevel;
     }
-
-    public void setLogLevelForConsoleHandlers(Level newLevel) {
-        
-        List<String> loggerNames;
-        if(this.isRootOnly()) {
-            loggerNames = Collections.singletonList(this.getRootLoggerName());
-        }else{
-            loggerNames = this.getLoggerNames(null);
-        }
-        
-        for(String loggerName:loggerNames) {
-            Handler [] handlers = logger(loggerName).getHandlers();
-            if(handlers != null) {
-                for(Handler handler:handlers) {
-                    if(handler instanceof ConsoleHandler) {
-                        handler.setLevel(newLevel);
-                    }
+    
+    public boolean addConsoleHandler(String fromLogger, String toLogger, boolean createIfNonExists) {
+        Logger logger = XLogger.getInstance().logger(toLogger);
+        Handler [] handlers = XLogger.getInstance().logger(fromLogger).getHandlers(); // ROOT Logger
+        boolean added = false;
+        if(handlers != null) {
+            for(Handler handler:handlers) {
+                if(handler instanceof ConsoleHandler) {
+//System.out.println("Adding ConsoleHandler from logger: "+fromLogger+" to logger: "+toLogger);                        
+                    logger.addHandler(handler);
+                    added = true;
+                    break;
                 }
             }
         }
+        if(!added && createIfNonExists) {
+            ConsoleHandler consoleHandler = new ConsoleHandler();
+//System.out.println("Adding new ConsoleHandler to logger: "+toLogger);                        
+            logger.addHandler(consoleHandler);
+            added = true;
+        }
+        return added;
     }
 
     public List<String> getLoggerNames(Filter<String> loggerNameFilter) {
