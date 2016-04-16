@@ -23,15 +23,15 @@ import java.util.logging.LoggingMXBean;
  */
 public class XLogger {
 
-//    public transient static final logger ROOT_LOGGER = logger.getLogger("");
+//    public transient static final toLogger ROOT_LOGGER = toLogger.getLogger("");
     
     /**
-     * If true, only the annonymous logger will be used
+     * If true, only the annonymous toLogger will be used
      */
     private boolean annonymous;
     
     /**
-     * If true, only the root logger will be used
+     * If true, only the root toLogger will be used
      */
     private boolean rootOnly;
     
@@ -190,15 +190,25 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
         return oldLevel;
     }
     
-    public boolean addConsoleHandler(String fromLogger, String toLogger, boolean createIfNonExists) {
-        Logger logger = XLogger.getInstance().logger(toLogger);
-        Handler [] handlers = XLogger.getInstance().logger(fromLogger).getHandlers(); // ROOT Logger
+    /**
+     * Transfers the ConsoleHandler from one logger to another
+     * @param fromLoggerName
+     * @param toLoggerName
+     * @param createIfNonExists
+     * @return 
+     */
+    public boolean transferConsoleHandler(String fromLoggerName, String toLoggerName, boolean createIfNonExists) {
+        Logger fromLogger = logger(toLoggerName);
+        Logger toLogger = logger(toLoggerName);
+        Handler [] handlers = fromLogger.getHandlers(); 
         boolean added = false;
         if(handlers != null) {
             for(Handler handler:handlers) {
                 if(handler instanceof ConsoleHandler) {
-//System.out.println("Adding ConsoleHandler from logger: "+fromLogger+" to logger: "+toLogger);                        
-                    logger.addHandler(handler);
+//System.out.println("Adding ConsoleHandler from toLogger: "+fromLoggerName+" to toLogger: "+toLogger);                        
+                    fromLogger.removeHandler(handler);
+                    toLogger.addHandler(handler);
+                    
                     added = true;
                     break;
                 }
@@ -206,8 +216,8 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
         }
         if(!added && createIfNonExists) {
             ConsoleHandler consoleHandler = new ConsoleHandler();
-//System.out.println("Adding new ConsoleHandler to logger: "+toLogger);                        
-            logger.addHandler(consoleHandler);
+//System.out.println("Adding new ConsoleHandler to toLogger: "+toLogger);                        
+            toLogger.addHandler(consoleHandler);
             added = true;
         }
         return added;

@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-//import org.json.simple.JSONAware;
 
 /**
  * @(#)JsonFormat.java   17-Oct-2014 19:12:03
@@ -37,6 +36,10 @@ public class JsonFormat {
     
     public void appendJSONString(Map m, StringBuilder sb) {
         
+        if(m == null) {
+            sb.append("null");
+        }    
+
         boolean first = true;
 	Iterator iter = m.entrySet().iterator();
         
@@ -101,18 +104,15 @@ public class JsonFormat {
     }
     
     /**
-     * Convert a list to JSON text. The result is a JSON array. 
-     * If this list is also a JSONAware, JSONAware specific behaviours will be omitted at this top level.
-     * 
-     * @see org.json.simple.JSONValue#appendJSONString(Object)
+     * Convert a collection to JSON text. The result is a JSON array. 
      * 
      * @param list
-     * @return JSON text, or "null" if list is null.
+     * @param sb
      */
-    public String appendJSONString(Collection list, StringBuilder sb){
+    public void appendJSONString(Collection list, StringBuilder sb){
         
         if(list == null) {
-            return "null";
+            sb.append("null");
         }    
 
         boolean first = true;
@@ -140,16 +140,11 @@ public class JsonFormat {
         }
             
         sb.append(']');
-
-        return sb.toString();
     }
     
     /**
      * Convert an object to JSON text.
-     * <p>
-     * If this object is a Map or a List, and it's also a JSONAware, JSONAware will be considered firstly.
-     * <p>
-     * DO NOT call this method from appendJSONPair() of a class that implements both JSONAware and Map or List with 
+     * DO NOT call this method from appendJSONPair() of a class that implements Map or List with 
      * "this" as the parameter, use JSONObject.appendJSONPair(Map) or JSONArray.appendJSONPair(List) instead. 
      * 
      * @see org.json.simple.JSONObject#appendJSONString(Map)
@@ -168,11 +163,8 @@ public class JsonFormat {
     
     /**
      * Convert an object to JSON text and appends it to the Buffer
-     * <p>
-     * If this object is a Map or a List, and it's also a JSONAware, JSONAware will be considered firstly.
-     * <p>
- DO NOT call this method from appendJSONPair() of a class that implements both JSONAware and Map or List with 
- "this" as the parameter, use JSONObject.appendJSONPair(Map) or JSONArray.appendJSONPair(List) instead. 
+     * DO NOT call this method from appendJSONPair() of a class that implements Map or List with 
+     * "this" as the parameter, use JSONObject.appendJSONPair(Map) or JSONArray.appendJSONPair(List) instead. 
      * 
      * @see org.json.simple.JSONObject#appendJSONString(Map)
      * @see org.json.simple.JSONArray#appendJSONString(List)

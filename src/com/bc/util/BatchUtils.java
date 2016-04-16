@@ -16,8 +16,33 @@ import java.util.logging.Level;
  */
 public class BatchUtils {
     
+    public static int getBatch(int index, int batchSize) {
+        if(index < 0) {
+            throw new IllegalArgumentException("index < 0");
+        }
+        if(batchSize <= 0) {
+            throw new IllegalArgumentException("batchSize <= 0");
+        }
+        int output = index / batchSize;
+        return output;
+    }
+    
+    public static int getIndexInBatch(int index, int batchSize) {
+        if(index < 0) {
+            throw new IllegalArgumentException("index < 0");
+        }
+        if(batchSize <= 0) {
+            throw new IllegalArgumentException("batchSize <= 0");
+        }
+        int output = index % batchSize;
+        return output;
+    }
+
     public static int getBatchCount(int batchSize, int size) {
-        if (batchSize <= 0 || size <= 0) {
+        if(batchSize <= 0) {
+            throw new IllegalArgumentException("batchSize <= 0");
+        }
+        if (size <= 0) {
             return 0;
         }        
         int batchCount = size / batchSize;

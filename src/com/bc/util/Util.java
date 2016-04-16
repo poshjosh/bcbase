@@ -24,6 +24,31 @@ import java.util.logging.Level;
  * @since    2.0
  */
 public class Util {
+    
+    public static String getRelativePath(String absolutePath, String base) {
+
+        absolutePath = normalize(absolutePath);
+        base = normalize(base);
+
+// When deployed real path starts with '/'
+//
+//        if(absolutePath.charAt(0) == '/') {
+//            throw new IllegalArgumentException();
+//        }
+
+        int index = absolutePath.indexOf(base);
+        
+        if(index < 0) throw new IllegalArgumentException("Input must start with: "+base+", Found: "+absolutePath);
+
+        String output = absolutePath.substring(index + base.length());
+//Logger.getLogger(this.getClass().getName()).info("Input: "+absolutePath+
+//        "\nOutput: "+output);
+        return output;
+    }
+    
+    private static String normalize(String path) {
+        return path.replace('\\', '/').trim();
+    }
 
     /**
      * @param url 
