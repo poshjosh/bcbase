@@ -193,34 +193,62 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
     /**
      * Transfers the ConsoleHandler from one logger to another
      * @param fromLoggerName
+     * @param toLoggerNames
+     * @param createIfNonExists
+     * @return 
+     */
+    public ConsoleHandler transferConsoleHandler(
+            String fromLoggerName, String [] toLoggerNames, boolean createIfNonExists) {
+        
+        int i = 0;
+        ConsoleHandler consoleHandler = null;
+        for(String to:toLoggerNames) {
+            if(i == 0) {
+                consoleHandler = this.transferConsoleHandler(fromLoggerName, to, createIfNonExists);
+            }else{
+                if(consoleHandler != null) {
+                    Logger logger = logger(to);
+                    logger.addHandler(consoleHandler);
+                }else{
+                    break;
+                }
+            }
+            ++i;
+        }
+        
+        return consoleHandler;
+    }
+
+    /**
+     * Transfers the ConsoleHandler from one logger to another
+     * @param fromLoggerName
      * @param toLoggerName
      * @param createIfNonExists
      * @return 
      */
-    public boolean transferConsoleHandler(String fromLoggerName, String toLoggerName, boolean createIfNonExists) {
+    public ConsoleHandler transferConsoleHandler(String fromLoggerName, String toLoggerName, boolean createIfNonExists) {
         Logger fromLogger = logger(toLoggerName);
         Logger toLogger = logger(toLoggerName);
         Handler [] handlers = fromLogger.getHandlers(); 
-        boolean added = false;
+        ConsoleHandler transfered = null;
         if(handlers != null) {
             for(Handler handler:handlers) {
                 if(handler instanceof ConsoleHandler) {
 //System.out.println("Adding ConsoleHandler from toLogger: "+fromLoggerName+" to toLogger: "+toLogger);                        
                     fromLogger.removeHandler(handler);
                     toLogger.addHandler(handler);
-                    
-                    added = true;
+                    transfered = (ConsoleHandler)handler;
                     break;
                 }
             }
         }
-        if(!added && createIfNonExists) {
+        if(transfered == null && createIfNonExists) {
             ConsoleHandler consoleHandler = new ConsoleHandler();
 //System.out.println("Adding new ConsoleHandler to toLogger: "+toLogger);                        
             toLogger.addHandler(consoleHandler);
-            added = true;
+            transfered = consoleHandler;
         }
-        return added;
+        return transfered;
     }
 
     public List<String> getLoggerNames(Filter<String> loggerNameFilter) {

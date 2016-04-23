@@ -43,7 +43,7 @@ public abstract class AbstractStoppableTaskList
     for (StoppableTask task : getList()) {
       if (task.isCompleted()) {
         message.append("Completed task: ");
-      } else if ((task.isStarted()) && (task.isStopInitiated())) {
+      } else if ((task.isStarted()) && (task.isStopRequested())) {
         if (task.isStopped()) {
           message.append("Stopping task: ");
         } else {
@@ -98,7 +98,7 @@ public abstract class AbstractStoppableTaskList
   {
     try
     {
-      if ((task == null) || (task.isStopInitiated()) || (task.isCompleted())) {
+      if ((task == null) || (task.isStopRequested()) || (task.isCompleted())) {
         return;
       }
       XLogger.getInstance().log(Level.FINER, "Sub process: {0}", getClass(), task);

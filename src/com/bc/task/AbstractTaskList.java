@@ -111,7 +111,7 @@ public abstract class AbstractTaskList<E>
       XLogger.getInstance().log(Level.FINER, "Running process {0} of {1}: {2}", getClass(), Integer.valueOf(this.pos + 1), Integer.valueOf(getTaskCount()), current);
       
 
-      if (isStopInitiated()) {
+      if (isStopRequested()) {
         break;
       }
       

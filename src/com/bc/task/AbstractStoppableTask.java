@@ -35,7 +35,7 @@ public abstract class AbstractStoppableTask
     this.stopInitiated = true;
   }
   
-  public boolean isStopInitiated() {
+  public boolean isStopRequested() {
     return this.stopInitiated;
   }
   
