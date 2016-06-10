@@ -13,5 +13,5 @@ package com.bc.sql;
  * @since    2.0
  */
 public interface SQLDateTimePatterns {
-    String getPattern(int type);
+    String getPattern(int sqlType);
 }

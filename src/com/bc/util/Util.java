@@ -25,22 +25,29 @@ import java.util.logging.Level;
  */
 public class Util {
     
-    public static String getRelativePath(String absolutePath, String base) {
+    /**
+     * @param path The path for which a relative path will be returned
+     * @param basePath The base path of the path for which a relative path will be returned
+     * @return A relative path 
+     * @throws IllegalArgumentException If the second method argument 
+     * (<code>path</code>) does not start with the first (<code>basePath</code>).
+     */
+    public static String getRelativePath(String basePath, String path) throws IllegalArgumentException {
 
-        absolutePath = normalize(absolutePath);
-        base = normalize(base);
-
+        path = normalize(path);
+        basePath = normalize(basePath);
+        
 // When deployed real path starts with '/'
 //
 //        if(absolutePath.charAt(0) == '/') {
 //            throw new IllegalArgumentException();
 //        }
 
-        int index = absolutePath.indexOf(base);
+        int index = path.indexOf(basePath);
         
-        if(index < 0) throw new IllegalArgumentException("Input must start with: "+base+", Found: "+absolutePath);
+        if(index < 0) throw new IllegalArgumentException("Input must start with: "+basePath+", Found: "+path);
 
-        String output = absolutePath.substring(index + base.length());
+        String output = path.substring(index + basePath.length());
 //Logger.getLogger(this.getClass().getName()).info("Input: "+absolutePath+
 //        "\nOutput: "+output);
         return output;

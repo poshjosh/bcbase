@@ -227,14 +227,14 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
      * @return 
      */
     public ConsoleHandler transferConsoleHandler(String fromLoggerName, String toLoggerName, boolean createIfNonExists) {
-        Logger fromLogger = logger(toLoggerName);
+        Logger fromLogger = logger(fromLoggerName);
         Logger toLogger = logger(toLoggerName);
         Handler [] handlers = fromLogger.getHandlers(); 
         ConsoleHandler transfered = null;
         if(handlers != null) {
             for(Handler handler:handlers) {
                 if(handler instanceof ConsoleHandler) {
-//System.out.println("Adding ConsoleHandler from toLogger: "+fromLoggerName+" to toLogger: "+toLogger);                        
+//System.out.println(this.getClass().getName()+" = = = = = = = = = = = = = Transfering ConsoleHandler from toLogger: "+fromLoggerName+" to toLogger: "+toLoggerName);                        
                     fromLogger.removeHandler(handler);
                     toLogger.addHandler(handler);
                     transfered = (ConsoleHandler)handler;
@@ -244,7 +244,7 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
         }
         if(transfered == null && createIfNonExists) {
             ConsoleHandler consoleHandler = new ConsoleHandler();
-//System.out.println("Adding new ConsoleHandler to toLogger: "+toLogger);                        
+//System.out.println(this.getClass().getName()+" = = = = = = = = = = = = = Adding new ConsoleHandler to toLogger: "+toLoggerName);                        
             toLogger.addHandler(consoleHandler);
             transfered = consoleHandler;
         }
@@ -272,35 +272,6 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
         return output;
     }
     
-    /**
-     * Filters all names which start with:
-     * <ul>
-     *   <li><tt>java.</tt></li>
-     *   <li><tt>javax.</tt></li>
-     *   <li><tt>com.sun.</tt></li>
-     *   <li><tt>com.oracle.</tt></li>
-     * </ul>
-     */
-    public static class JavaLoggerNamesFilter implements Filter<String> {
-        /**
-         * Filters all names which start with:
-         * <ul>
-         *   <li><tt>java.</tt></li>
-         *   <li><tt>javax.</tt></li>
-         *   <li><tt>com.sun.</tt></li>
-         *   <li><tt>com.oracle.</tt></li>
-         * </ul>
-         * @param loggerName
-         * @return 
-         */
-        @Override
-        public boolean accept(String loggerName) {
-            return !(loggerName.isEmpty() ||
-                    loggerName.startsWith("java") || loggerName.startsWith("javax") ||
-                    loggerName.startsWith("com.sun") || loggerName.startsWith("com.oracle"));
-        }
-    }
-    
     public static interface Filter<E> {
         boolean accept(E e); 
     }
@@ -317,3 +288,25 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
         this.rootLoggerName = rootLoggerName;
     }
 }
+/**
+ * 
+    public static final class JavaLoggerNamesFilter implements Filter<String> {
+         * Filters all names which start with:
+         * <ul>
+         *   <li><tt>java.</tt></li>
+         *   <li><tt>javax.</tt></li>
+         *   <li><tt>com.sun.</tt></li>
+         *   <li><tt>com.oracle.</tt></li>
+         * </ul>
+         * @param loggerName
+         * @return 
+        @Override
+        public boolean accept(String loggerName) {
+            return !(loggerName.isEmpty() ||
+                    loggerName.startsWith("java") || loggerName.startsWith("javax") ||
+                    loggerName.startsWith("com.sun") || loggerName.startsWith("com.oracle"));
+        }
+    }
+    
+ * 
+ */

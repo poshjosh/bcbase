@@ -1,6 +1,5 @@
 package com.bc.sql;
 
-import com.bc.sql.SQLDateTimePatterns;
 import java.io.Serializable;
 import java.sql.Types;
 
@@ -18,13 +17,13 @@ import java.sql.Types;
  */
 public class MySQLDateTimePatterns implements SQLDateTimePatterns, Serializable {
     @Override
-    public String getPattern(int type) {
-        switch(type) {
+    public String getPattern(int sqlType) {
+        switch(sqlType) {
             case Types.DATE: return "yyyy-MM-dd";
             case Types.TIME: return "HH:mm:ss";
             case Types.TIMESTAMP: return "yyyyMMddHHmmss";
 //                case Types.DATETIME: return "yyyy-MM-dd HH:mm:ss";    
-            default: throw new IllegalArgumentException("Unexpected SQL Type: "+type);    
+            default: throw new IllegalArgumentException("Unexpected SQL Type: "+sqlType);    
         }
     }
 }
