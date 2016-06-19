@@ -1,5 +1,8 @@
 package com.bc.util;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 
 /**
  * @(#)Main.java   17-Jun-2015 21:59:40
@@ -18,6 +21,10 @@ public class Main {
 
     public static void main(String [] args) {
         try{
+if(true) {
+    System.out.println(new SimpleDateFormat("E MMM dd HH:mm:ss z yyyy").parse(new Date().toString()));
+    return;
+}    
 if(true) {
     System.out.println(0.05/0.3);
     System.out.println(0.2/0.3);
