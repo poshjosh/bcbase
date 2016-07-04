@@ -4,38 +4,13 @@ import com.bc.util.XLogger;
 import java.util.List;
 import java.util.logging.Level;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-public abstract class AbstractStoppableTaskList
-  extends AbstractTaskList<StoppableTask>
-  implements ProgressTask
-{
-  private long startTime;
-  
-  public void reset()
-  {
-    super.reset();
-    this.startTime = 0L;
-  }
-  
-
-
-
-
-  public String getMessage()
-  {
+public abstract class AbstractStoppableTaskList 
+    extends AbstractTaskList<StoppableTask>
+    implements ProgressTask {
+    
+  @Override
+  public String getMessage() {
+      
     StringBuilder message = new StringBuilder("Please wait, running ");
     
     message.append(getMax()).append(" tasks.\n");
@@ -79,23 +54,7 @@ public abstract class AbstractStoppableTaskList
     return pos - 1;
   }
   
-  public void run()
-  {
-    this.startTime = System.currentTimeMillis();
-    super.run();
-  }
-  
-  protected void doRun()
-  {
-    this.startTime = System.currentTimeMillis();
-    super.doRun();
-  }
-  
-
-
-
-  public void execute(StoppableTask task)
-  {
+  public void execute(StoppableTask task) {
     try
     {
       if ((task == null) || (task.isStopRequested()) || (task.isCompleted())) {
@@ -214,16 +173,5 @@ public abstract class AbstractStoppableTaskList
     }
     
     return count == getTaskCount();
-  }
-  
-  public void print(StringBuilder builder)
-  {
-    super.print(builder);
-    builder.append(", startTime").append(this.startTime);
-  }
-  
-  public long getStartTime()
-  {
-    return this.startTime;
   }
 }

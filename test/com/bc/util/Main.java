@@ -17,10 +17,11 @@ import java.util.Date;
  * @version  2.0
  * @since    2.0
  */
-public class Main {
-
+public class Main{
+    
     public static void main(String [] args) {
         try{
+            
 if(true) {
     System.out.println(new SimpleDateFormat("E MMM dd HH:mm:ss z yyyy").parse(new Date().toString()));
     return;

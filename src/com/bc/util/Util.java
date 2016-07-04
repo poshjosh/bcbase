@@ -162,8 +162,10 @@ XLogger.getInstance().log(Level.FINER, "AFTER REMOVING null values: {0}", Util.c
     public static boolean shutdownAndAwaitTermination(
             ExecutorService pool, long timeout, 
             TimeUnit unit, List<Runnable> addInterruptedHere)  {
-        
-        pool.shutdown(); // Disable new tasks from being submitted
+
+        if(!pool.isShutdown()) {
+            pool.shutdown(); // Disable new tasks from being submitted
+        }
 
         return awaitTermination(pool, timeout, unit, addInterruptedHere);
     }
