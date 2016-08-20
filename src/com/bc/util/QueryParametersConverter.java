@@ -81,6 +81,10 @@ public class QueryParametersConverter implements Serializable {
             throw new NullPointerException();
         }
         
+        if(input.startsWith("?")) {
+            input = input.substring(1);
+        }
+        
 XLogger.getInstance().log(Level.FINER, "{0}. Separator: {1}, Nulls allowed: {2}, Query: {3}", 
         this.getClass(), separator, emptyStringsAllowed, input); 
 

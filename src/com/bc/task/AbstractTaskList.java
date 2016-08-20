@@ -4,7 +4,7 @@ import com.bc.util.XLogger;
 import java.util.List;
 import java.util.logging.Level;
 
-public abstract class AbstractTaskList<E> extends AbstractStoppableTask {
+public abstract class AbstractTaskList<E> extends AbstractStoppableTask<Integer> {
     
   private int pos;
   
@@ -40,7 +40,7 @@ public abstract class AbstractTaskList<E> extends AbstractStoppableTask {
   }
 
   @Override
-  protected void doRun() {
+  public Integer doCall() {
       
     XLogger.getInstance().log(Level.FINE, "Running process: {0} with {1} sub processes, starting at offset: {2}", getClass(), getClass().getSimpleName(), Integer.valueOf(getTaskCount()), Integer.valueOf(this.pos));
     
@@ -61,6 +61,8 @@ public abstract class AbstractTaskList<E> extends AbstractStoppableTask {
     }
     
     XLogger.getInstance().log(Level.FINER, "DONE Running process: {0}. pos: {1}, size: {2}", getClass(), getClass().getSimpleName(), Integer.valueOf(this.pos), Integer.valueOf(getTaskCount()));
+    
+    return this.pos;
   }
   
   public E getCurrent() {

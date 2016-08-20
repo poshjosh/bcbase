@@ -1,6 +1,7 @@
 package com.bc.util;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -106,9 +107,20 @@ public class JsonBuilder<E extends Appendable> {
 
         this.appendJSONString(value, appendTo);
     }
+
+    /**
+     * Convert an array to JSON text. 
+     * 
+     * @param arr
+     * @param appendTo
+     */
+    public void appendJSONString(Object [] arr, E appendTo) throws IOException {
+        
+        this.appendJSONString(arr == null ? null : Arrays.asList(arr), appendTo);
+    }
     
     /**
-     * Convert a collection to JSON text. The result is a JSON array. 
+     * Convert a collection to JSON text. 
      * 
      * @param list
      * @param appendTo
@@ -117,15 +129,14 @@ public class JsonBuilder<E extends Appendable> {
         
         if(list == null) {
             appendTo.append("null");
+            return;
         }    
 
         boolean first = true;
 
-        Iterator iter = list.iterator();
-
         appendTo.append('[');
         
-        while(iter.hasNext()){
+        for(Object value:list){
 
             if(first) {
                 first = false;
@@ -133,8 +144,6 @@ public class JsonBuilder<E extends Appendable> {
                 appendTo.append(',');
             }    
         
-            Object value = iter.next();
-            
             if(value == null){
                 appendTo.append("null");
                 continue;
@@ -206,6 +215,11 @@ public class JsonBuilder<E extends Appendable> {
             appendJSONString((Collection)value, appendTo);
             return;
         }  
+        
+        if(value instanceof Object[]) {
+            appendJSONString((Object[])value, appendTo);
+            return;
+        }
         
         if(value instanceof Object) {
             appendTo.append('\"');

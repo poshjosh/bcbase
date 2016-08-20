@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
@@ -253,17 +254,13 @@ public class XMLUtils {
     }
 
     public static Document load(String uriString) {
-        if (uriString == null) {
-            throw new IllegalArgumentException("URI cannot be null");
-        }
+        Objects.requireNonNull(uriString, "URI cannot be null");
         InputSource in = new InputSource(uriString);
         return load(in, uriString);
     }
     
     public static Document load(File file) {
-        if (file == null) {
-            throw new IllegalArgumentException("File cannot be null");
-        }
+        Objects.requireNonNull(file, "File cannot be null");
         //convert file to appropriate URI, f.toURI().toASCIIString()
         //converts the URI to string as per rule specified in
         //RFC 2396,
@@ -283,6 +280,9 @@ public class XMLUtils {
     }
     
     private static Document load(InputSource in, String uriString) {
+        
+//XLogger.getInstance().log(Level.INFO, "Loading document from: {0}", XMLUtils.class, uriString);
+
         Document doc = null;
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();

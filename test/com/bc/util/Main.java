@@ -1,7 +1,9 @@
 package com.bc.util;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 
 
 /**
@@ -21,6 +23,18 @@ public class Main{
     
     public static void main(String [] args) {
         try{
+            
+if(true) {
+    JsonFormat jf = new JsonFormat(true, true);
+    StringBuilder builder = new StringBuilder();
+    Map names = Collections.singletonMap("Names", new String[]{"Chinomso", "Ikwuagwu"});
+    jf.appendJSONString(names, builder);
+System.out.println(builder);    
+    builder.setLength(0);
+    jf.appendJSONString(new Object[]{"Chinomso", "Ikwuagwu", Boolean.TRUE}, builder);
+System.out.println(builder);
+    return;
+}            
             
 if(true) {
     System.out.println(new SimpleDateFormat("E MMM dd HH:mm:ss z yyyy").parse(new Date().toString()));

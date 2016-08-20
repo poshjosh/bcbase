@@ -25,7 +25,27 @@ import java.util.logging.Level;
  */
 public class Util {
     
-    /**
+  
+  public final static String removeNonBasicMultilingualPlaneChars(String test) {
+      
+    StringBuilder sb = new StringBuilder(test.length());
+    
+    for (int ii = 0; ii < test.length(); ) {
+          
+       int codePoint = test.codePointAt(ii);
+       
+       if (codePoint > 0xFFFF) {
+         ii += Character.charCount(codePoint);
+       }else {
+         sb.appendCodePoint(codePoint);
+         ii++;
+       }
+    }
+    
+    return sb.toString();
+  }
+
+  /**
      * @param path The path for which a relative path will be returned
      * @param basePath The base path of the path for which a relative path will be returned
      * @return A relative path 

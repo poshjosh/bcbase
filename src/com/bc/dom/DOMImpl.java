@@ -3,6 +3,7 @@ package com.bc.dom;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Objects;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -48,11 +49,7 @@ public abstract class DOMImpl implements DOM {
     }
     
     public DOMImpl(Document doc, boolean autoSaveChanges) {
-        if(doc == null) {
-            throw new NullPointerException();
-        }
-        
-        this.document = doc;
+        this.document = Objects.requireNonNull(doc);
         this.autoSaveChanges = autoSaveChanges;
     }
 

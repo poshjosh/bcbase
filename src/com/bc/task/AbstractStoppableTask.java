@@ -1,9 +1,10 @@
 package com.bc.task;
 
 import com.bc.util.XLogger;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
-public abstract class AbstractStoppableTask implements StoppableTask {
+public abstract class AbstractStoppableTask<R> implements StoppableTask, Callable<R>{
     
   private boolean attemptedPre;
   
@@ -20,28 +21,95 @@ public abstract class AbstractStoppableTask implements StoppableTask {
     this.attemptedPre = false;
   }
   
-  protected abstract void doRun();
-  
-  public long getTimeout() {
-    return 0L;
-  }
-  
+  /**
+   * Called from within the {@link #call() call()} method.
+   * <p>
+   * {@link #pre() pre()} is called from within {@link #call() call()} method before 
+   * {@link #doCall() doCall()} method.
+   * </p>
+   * <p>Default implementation does nothing</p>
+   * @see #call() 
+   * @see #doCall() 
+   */
   protected void pre() {}
   
+  /**
+   * Called from within the {@link #call() call()} method.
+   * <p>
+   * {@link #doCall() doCall()} is called from within {@link #call() call()} method after
+   * {@link #pre() pre()} method.
+   * </p>
+   * <p>Default implementation does nothing</p>
+   * @return The result
+   * @throws java.lang.Exception
+   * @see #call() 
+   * @see #pre() 
+   */
+  public abstract R doCall() throws Exception;
+  
+  /**
+   * Called from within the {@link #call() call()} method.
+   * <p>Default implementation does nothing</p>
+   * @param result The result returned by the {@link #call() call()} method.
+   * @see #calln() 
+   */
+  protected void onSuccess(R result) {  }
+  
+  /**
+   * Called from within the {@link #call() call()} method.
+   * <p>Default implementation does nothing</p>
+   * @param e The Exception thrown by either the {@link #pre() pre()}, 
+   * {@link #call() call()} or {@link #onSuccess(java.lang.Object) onSuccess(Object)} methods.
+   * @see #cll() 
+   */
+  protected void onError(Exception e) { }
+  
+  /**
+   * Called from within the {@link #call() call()} method.
+   * <p>
+   * {@link #post() post()} is called from within {@link #call() call()} method after 
+   * {@link #doCall() doCall()} method and only if {@link #pre() pre()} method earlier returned successfully. 
+   * </p>
+   * <p>Default implementation does nothing</p>
+   * @see #call() 
+   * @see #doCall()
+   */
   protected void post() {}
   
+  /**
+   * Simply calls {@link #call() call()}
+   * @see #call() 
+   */
   @Override
   public final void run() {
+    this.call();
+  }
+  
+  /**
+   * Within the {@link #call() call()} method, order of method doCall is as follows: 
+   * <p>
+   * {@link #pre() pre()} -> {@link #doCall() doCall()} -> 
+   * ({@link #onSuccess(java.lang.Object) onSuccess(Object)} / {@link #onError(java.lang.Exception) onError(Exception)}) 
+   * -> {@link #post() post()}
+   * </p>
+   * @see #doCall() 
+   */
+  @Override
+  public final R call() {
+      
+    R result = null;  
      
-    XLogger.getInstance().log(Level.FINER, "Before doRun(). {0}", getClass(), this);
+    XLogger.getInstance().log(Level.FINER, "BEFORE #call(). {0}", getClass(), this);
     
     if(this.isStarted()) {
-      throw new IllegalStateException("Cannot call method #run() when: Started == true. Call #reset() before each successive call to #run");
+      throw new IllegalStateException("Cannot call method #call() when: Started == true. Call #reset() before each successive call to #call()");
     }
     
     this.setStarted(true);
     this.stopInitiated = false;
     this.stopped = false;
+    
+    boolean preCalled = false;
     
     try {
         
@@ -50,17 +118,37 @@ public abstract class AbstractStoppableTask implements StoppableTask {
         this.attemptedPre = true;
         
         pre();
+        
+        preCalled = true;
       }
       
-      doRun();
+      result = doCall();
+      
+      if(this.isCompleted()) {
+          
+        onSuccess(result);
+      }
+    }catch(Exception e) {  
+        
+      onError(e);  
       
     }finally {
+        
       this.stopped = true;
-      XLogger.getInstance().log(Level.FINER, "After doRun(). {0}", getClass(), this);
-      if(this.isCompleted()) {
+      
+      if(preCalled) {
+          
         post();
       }
+      
+      XLogger.getInstance().log(Level.FINER, "AFTER #call(). {0}", getClass(), this);
     }
+    
+    return result;
+  }
+
+  public long getTimeout() {
+    return 0L;
   }
   
   protected void setStarted(boolean started) {
