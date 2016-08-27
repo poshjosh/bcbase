@@ -1,8 +1,12 @@
 package temp;
 
+import java.util.concurrent.TimeUnit;
+
 public class NumberBase {
     
   public static void main(String [] args) {
+      final int minutesAgo = 60;
+System.out.println(""+minutesAgo+" minutes ago as timestamp: "+(System.currentTimeMillis()-TimeUnit.MINUTES.toMillis(minutesAgo)));      
 System.out.println(NumberBase.convert(Integer.MAX_VALUE, 8));
 System.out.println(NumberBase.convert(Integer.MAX_VALUE, 2));
   }

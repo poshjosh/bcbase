@@ -14,20 +14,22 @@ import java.util.Arrays;
  * terms found at http://www.looseboxes.com/licenses/software.html
  */
 /**
- * <b>Note:</b><br/>
+ * <p><b>Note:</b></p>
  * <b>
- * 1. An IntegerArray cannot be added to itself.<br/>
- * 2. All Integers with the exception of {@link java.lang.Integer#MIN_VALUE} 
+ * <p>1. An IntegerArray cannot be added to itself.</p>
+ * <p>2. All Integers with the exception of {@link java.lang.Integer#MIN_VALUE} 
  * may be added as an element to this Object.
+ * </p>
  * </b>
  * @author   chinomso bassey ikwuagwu
  * @version  2.1.0 
- * 1. Added method toArray()<br/>
- * 2. Changed space holder element from -1 to Integer.MIN_VALUE<br/>
- * 3. Changed the access modifiers of {@linkplain #writeObject(java.io.ObjectOutputStream)} 
+ * <p>1. Added method toArray()</p>
+ * <p>2. Changed space holder element from -1 to Integer.MIN_VALUE</p>
+ * <p>3. Changed the access modifiers of {@linkplain #writeObject(java.io.ObjectOutputStream)} 
  * and {@linkplain #readObject(java.io.ObjectInputStream)} from public to private
+ * </p>
  * @version 3.0
- * Added method set(int pos, int toAdd)
+ * <p>Added method set(int pos, int toAdd)</p>
  * @since    2.0
  */
 public class IntegerArray implements Serializable, Cloneable {
