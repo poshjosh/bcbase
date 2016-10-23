@@ -2,8 +2,8 @@ package com.bc.util;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -24,8 +24,24 @@ import java.util.logging.Level;
  * @since    2.0
  */
 public class Util {
+
+  public final static String getImageUrlRegex() {
+      return getImageUrlRegex("jpg", "gif", "png", "jpeg");
+  }
     
-  
+  public final static String getImageUrlRegex(String... imageExtensions) {
+// Example:   (?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*\\.(?:jpe?g|gif|png))(?:\\?([^#]*))?(?:#(.*))?      
+      StringBuilder builder = new StringBuilder("(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*\\.(?:");
+      for(int i=0; i<imageExtensions.length; i++) {
+          builder.append(imageExtensions[i]);
+          if(i < imageExtensions.length - 1) {
+              builder.append('|');
+          }
+      }
+      builder.append("))(?:\\?([^#]*))?(?:#(.*))?");
+      return builder.toString();
+  }
+    
   public final static String removeNonBasicMultilingualPlaneChars(String test) {
       
     StringBuilder sb = new StringBuilder(test.length());
@@ -57,12 +73,6 @@ public class Util {
         path = normalize(path);
         basePath = normalize(basePath);
         
-// When deployed real path starts with '/'
-//
-//        if(absolutePath.charAt(0) == '/') {
-//            throw new IllegalArgumentException();
-//        }
-
         int index = path.indexOf(basePath);
         
         if(index < 0) throw new IllegalArgumentException("Input must start with: "+basePath+", Found: "+path);
@@ -100,19 +110,39 @@ public class Util {
      * For a path of <tt>/folder/folder/file.xyz</tt> returns <tt>xyz</tt>
      */
     public static String getExtension(String path) {
+        
 //        This doesn't work for filenames with ':'. e.g http://
 //        String ext = Paths.get(path).getFileName().toString();
-        int n = path.lastIndexOf('.', path.length()-1); 
+
+        final int len = path.length();
+
+        final int b = path.lastIndexOf('?', len-1);
         
-        String ext = n == -1 ? null : path.substring(n + 1);
+        final int a = path.lastIndexOf('.', len-1); 
+        
+        String ext = a == -1 ? null : path.substring(a + 1, (b == -1 ? len : b) );
         
         return ext;
     }
     
     /**
-     * Returns an <code>int</code> value with a positive sign, greater 
+     * @param size The returned int will be of range: 0 - <tt>size</tt>
+     * @return  a pseudorandom <code>int</code> greater than or equal 
+     * to <code>0</code> and less than the input<code>size</code>.
+     * @see     com.bc.util.Util#random(double) 
+     * @see     java.lang.Math#random()
+     */
+    public static int randomInt(int size) {
+        
+        double numbr = random(size);
+
+        return (int)Math.floor(numbr);
+    }
+    
+    /**
+     * Returns a <code>double</code> value with a positive sign, greater 
      * than or equal to <code>0</code> and less than input <code>size</code>. 
-     * Returned values are chosen pseudorandomly with (approximately) 
+     * Returned values are chosen pseudo-randomly with (approximately) 
      * uniform distribution from that range. 
      * 
      * <p>When this method is first called, it creates a single new
@@ -126,18 +156,18 @@ public class Util {
      * pseudorandom numbers at a great rate, it may reduce contention
      * for each thread to have its own pseudorandom-number generator.
      *  
-     * @param size The returned int will be of range: 0 - <tt>size</tt>
-     * @return  a pseudorandom <code>int</code> greater than or equal 
+     * @param size The returned double will be of range: 0 - <tt>size</tt>
+     * @return  a pseudorandom <code>double</code> greater than or equal 
      * to <code>0</code> and less than the input<code>size</code>.
      * @see     java.lang.Math#random()
      */
-    public static int randomInt(int size) {
+    public static double random(double size) {
         
         double random = Math.random();
 
         double numbr = (random * size);
 
-        return (int)Math.floor(numbr);
+        return numbr;
     }
     
     public static boolean removeNulls(Collection c) {
@@ -149,10 +179,7 @@ public class Util {
         // Collection.remove(null) will only remove the first null value
         // So we use Collection.removeAll(Collection c);
         //
-        ArrayList nullList = new ArrayList(1);
-        nullList.add(null);
-
-        boolean success = c.removeAll(nullList); 
+        boolean success = c.removeAll(Collections.singleton(null)); 
         
 XLogger.getInstance().log(Level.FINER, "AFTER REMOVING null values: {0}", Util.class, c);
 

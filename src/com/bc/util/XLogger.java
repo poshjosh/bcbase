@@ -229,10 +229,10 @@ XLogger.getInstance().log(Level.INFO, "Setting log level to {0} for {1} and hand
     public ConsoleHandler transferConsoleHandler(String fromLoggerName, String toLoggerName, boolean createIfNonExists) {
         Logger fromLogger = logger(fromLoggerName);
         Logger toLogger = logger(toLoggerName);
-        Handler [] handlers = fromLogger.getHandlers(); 
+        final Handler [] fromHandlers = fromLogger.getHandlers(); 
         ConsoleHandler transfered = null;
-        if(handlers != null) {
-            for(Handler handler:handlers) {
+        if(fromHandlers != null) {
+            for(Handler handler:fromHandlers) {
                 if(handler instanceof ConsoleHandler) {
 //System.out.println(this.getClass().getName()+" = = = = = = = = = = = = = Transfering ConsoleHandler from toLogger: "+fromLoggerName+" to toLogger: "+toLoggerName);                        
                     fromLogger.removeHandler(handler);

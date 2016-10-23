@@ -1,10 +1,9 @@
 package com.bc.task;
 
 import com.bc.util.XLogger;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
-public abstract class AbstractStoppableTask<R> implements StoppableTask, Callable<R>{
+public abstract class AbstractStoppableTask<R> implements StoppableTask<R>{
     
   private boolean attemptedPre;
   
@@ -24,18 +23,6 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
   /**
    * Called from within the {@link #call() call()} method.
    * <p>
-   * {@link #pre() pre()} is called from within {@link #call() call()} method before 
-   * {@link #doCall() doCall()} method.
-   * </p>
-   * <p>Default implementation does nothing</p>
-   * @see #call() 
-   * @see #doCall() 
-   */
-  protected void pre() {}
-  
-  /**
-   * Called from within the {@link #call() call()} method.
-   * <p>
    * {@link #doCall() doCall()} is called from within {@link #call() call()} method after
    * {@link #pre() pre()} method.
    * </p>
@@ -45,7 +32,19 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
    * @see #call() 
    * @see #pre() 
    */
-  public abstract R doCall() throws Exception;
+  protected abstract R doCall() throws Exception;
+  
+  /**
+   * Called from within the {@link #call() call()} method.
+   * <p>
+   * {@link #pre() pre()} is called from within {@link #call() call()} method before 
+   * {@link #doCall() doCall()} method.
+   * </p>
+   * <p>Default implementation does nothing</p>
+   * @see #call() 
+   * @see #doCall() 
+   */
+  protected void pre() {}
   
   /**
    * Called from within the {@link #call() call()} method.
@@ -60,9 +59,15 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
    * <p>Default implementation does nothing</p>
    * @param e The Exception thrown by either the {@link #pre() pre()}, 
    * {@link #call() call()} or {@link #onSuccess(java.lang.Object) onSuccess(Object)} methods.
-   * @see #cll() 
+   * @see #call() 
    */
-  protected void onError(Exception e) { }
+  protected void onError(Exception e) { 
+      onError(e, "#onError(Exception)");
+  }
+  
+  protected void onError(Exception e, String message) {
+      XLogger.getInstance().log(Level.WARNING, message, this.getClass(), e);
+  }
   
   /**
    * Called from within the {@link #call() call()} method.
@@ -86,7 +91,7 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
   }
   
   /**
-   * Within the {@link #call() call()} method, order of method doCall is as follows: 
+   * Within the {@link #call() call()} method, order of method call is as follows: 
    * <p>
    * {@link #pre() pre()} -> {@link #doCall() doCall()} -> 
    * ({@link #onSuccess(java.lang.Object) onSuccess(Object)} / {@link #onError(java.lang.Exception) onError(Exception)}) 
@@ -123,7 +128,7 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
       }
       
       result = doCall();
-      
+
       if(this.isCompleted()) {
           
         onSuccess(result);
@@ -143,14 +148,10 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
       
       XLogger.getInstance().log(Level.FINER, "AFTER #call(). {0}", getClass(), this);
     }
-    
+
     return result;
   }
 
-  public long getTimeout() {
-    return 0L;
-  }
-  
   protected void setStarted(boolean started) {
     this.started = started;
     if(started) {
@@ -193,14 +194,15 @@ public abstract class AbstractStoppableTask<R> implements StoppableTask, Callabl
     return this.started && !this.stopped;
   }
     
-  public boolean isTimedout() {
-    return this.getStartTime() > 0 && this.getTimeout() > 0 && this.getTimeSpent() > this.getTimeout();
+  public boolean isTimedout(long timeout) {
+    return this.getStartTime() > 0 && timeout > 0 && this.getTimeSpent() > timeout;
   }
     
   public long getTimeSpent() {
     return System.currentTimeMillis() - this.getStartTime();
   }
     
+  @Override
   public long getStartTime() {
     return startTime;
   }

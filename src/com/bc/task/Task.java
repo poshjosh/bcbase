@@ -1,6 +1,8 @@
 package com.bc.task;
 
-public abstract interface Task extends Runnable {
+import java.util.concurrent.Callable;
+
+public abstract interface Task<R> extends Callable<R>, Runnable {
     
   public abstract boolean isStarted();
   

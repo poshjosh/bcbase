@@ -40,7 +40,7 @@ public abstract class AbstractTaskList<E> extends AbstractStoppableTask<Integer>
   }
 
   @Override
-  public Integer doCall() {
+  protected Integer doCall() {
       
     XLogger.getInstance().log(Level.FINE, "Running process: {0} with {1} sub processes, starting at offset: {2}", getClass(), getClass().getSimpleName(), Integer.valueOf(getTaskCount()), Integer.valueOf(this.pos));
     

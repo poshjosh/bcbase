@@ -2,11 +2,13 @@ package com.bc.task;
 
 import java.io.Serializable;
 
-public abstract interface StoppableTask extends Task, Serializable {
+public interface StoppableTask<R> extends Task<R>, Serializable {
     
-  public abstract void stop();
+  void stop();
   
-  public abstract boolean isStopRequested();
+  long getStartTime();
   
-  public abstract boolean isStopped();
+  boolean isStopRequested();
+  
+  boolean isStopped();
 }

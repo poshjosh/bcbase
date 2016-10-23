@@ -120,18 +120,33 @@ public class ConnectionManager {
         boolean oldVal = HttpURLConnection.getFollowRedirects();
         try {
             HttpURLConnection.setFollowRedirects(false);
-            // note : you may also need
-            //        HttpURLConnection.setInstanceFollowRedirects(false)
-            HttpURLConnection con = 
-               (HttpURLConnection) new URL(URLName).openConnection();
-            con.setInstanceFollowRedirects(false);
-            con.setRequestMethod("HEAD");
+            HttpURLConnection con = getHead(URLName);
             return (con.getResponseCode() == HttpURLConnection.HTTP_OK);
         }finally{
             HttpURLConnection.setFollowRedirects(oldVal);
         }
     }
 
+    public static String getContentType(String URLName) throws IOException {
+        boolean oldVal = HttpURLConnection.getFollowRedirects();
+        try {
+            HttpURLConnection.setFollowRedirects(false);
+            HttpURLConnection con = getHead(URLName);
+            con.connect();
+            return con.getContentType();
+        }finally{
+            HttpURLConnection.setFollowRedirects(oldVal);
+        }
+    }
+
+    private static HttpURLConnection getHead(String URLName) throws IOException {
+        HttpURLConnection con = 
+           (HttpURLConnection) new URL(URLName).openConnection();
+        con.setInstanceFollowRedirects(false);
+        con.setRequestMethod("HEAD");
+        return con;
+    }
+    
     public static boolean isValidUrl(URL url) throws IOException {
         try{
             url.openConnection();
@@ -995,6 +1010,11 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams
     
     public URLConnection getConnection() {
         return connection;
+    }
+    
+    public boolean isPositiveCompletion() {
+        final int code = this.getResponseCode();
+        return code > 0 && code < 300;
     }
     
     public int getResponseCode() {

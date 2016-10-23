@@ -90,6 +90,7 @@ public class JsonBuilder<E extends Appendable> {
      * @param key
      * @param value
      * @param appendTo 
+     * @throws java.io.IOException 
      */
     public void appendJSONPair(String key, Object value, E appendTo) throws IOException {
         
