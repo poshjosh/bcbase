@@ -42,7 +42,10 @@ public class JsonBuilder<E extends Appendable> {
     public void appendJSONString(Map m, E appendTo) throws IOException {
         
         if(m == null) {
+            
             appendTo.append("null");
+            
+            return;
         }    
 
         boolean first = true;
