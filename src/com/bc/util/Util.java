@@ -25,6 +25,15 @@ import java.util.logging.Level;
  */
 public class Util {
 
+    public static boolean isSubclassOf(Class tgt, Class cls) {
+        try{
+            tgt.asSubclass(cls);
+            return true;
+        }catch(ClassCastException ignored) {
+            return false;
+        }
+    }
+    
   public final static String getImageUrlRegex() {
       return getImageUrlRegex("jpg", "gif", "png", "jpeg");
   }

@@ -159,6 +159,10 @@ XLogger.getInstance().log(Level.FINER, "AFTER REMOVING null values: {0}",
     }
     
     public static Class getClass(int type) {
+        return getClass(type, Object.class);
+    }
+    
+    public static Class getClass(int type, Class outputIfNone) {
         switch(type) {
             case Types.CHAR:
             case Types.VARCHAR:
@@ -217,7 +221,7 @@ XLogger.getInstance().log(Level.FINER, "AFTER REMOVING null values: {0}",
                 return Struct.class;
 
             default:
-                return Object.class;
+                return outputIfNone;
         }
 // @todo tests needed to determine if this is recognized in the TableModel Interface
 /**
