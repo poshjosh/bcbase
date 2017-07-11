@@ -17,6 +17,9 @@
 package com.bc.util;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,13 +29,15 @@ import java.util.Set;
 public interface MapBuilder {
     
     interface MethodFilter {
+        
         MethodFilter ACCEPT_ALL = new MethodFilter() {
             @Override
-            public boolean accept(Method method, String columnName) {
+            public boolean accept(Class type, Object object, Method method, String columnName) {
                 return true;
             }
         };
-        boolean accept(Method method, String columnName);
+        
+        boolean accept(Class type, Object object, Method method, String columnName);
     }
     
     interface RecursionFilter {
@@ -44,9 +49,28 @@ public interface MapBuilder {
         };
         boolean shouldRecurse(Class type, Object value);
     }
+    
+    interface ContainerFactory{
+        ContainerFactory DEFAULT = new ContainerFactory() {
+            @Override
+            public Map createMapContainer() {
+                return new LinkedHashMap();
+            }
+            @Override
+            public Collection createCollectionContainer() {
+                return this.createCollectionContainer(10);
+            }
+            @Override
+            public Collection createCollectionContainer(int initialCapacity) {
+                return new ArrayList(initialCapacity);
+            }
+        };
+        Map createMapContainer();
+        Collection createCollectionContainer();
+        Collection createCollectionContainer(int initialCapacity);
+    }
 
     interface Transformer {
-        
         Transformer NO_OPERATION = new Transformer() {
             @Override
             public String transformKey(Object entity, String key) {
@@ -84,6 +108,8 @@ public interface MapBuilder {
     MapBuilder methodFilter(MethodFilter methodFilter);
 
     MapBuilder recursionFilter(RecursionFilter recursionFilter);
+    
+    MapBuilder containerFactory(ContainerFactory containerFactory);
 
     MapBuilder transformer(Transformer transformer);
 }

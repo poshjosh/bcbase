@@ -166,24 +166,38 @@ public class XMLUtils {
         }
         try{
             URI uri = new URI(uriString);
-            boolean saved = save(doc, Paths.get(uri).toFile());
-            if(!saved) {
-                URL url = uri.toURL();
-                try{
-                    return save(doc, url.openConnection().getOutputStream());
-                }catch(IOException ioe) {
-                    logger.log(Level.WARNING, "Error saving document to: "+uriString, ioe);
-                    return false;
-                }
-            }else{
-                return saved;
-            }
-        }catch(URISyntaxException | MalformedURLException e) {
+            return save(doc, uri);
+        }catch(URISyntaxException e) {
             logger.log(Level.WARNING, "Error saving document to: "+uriString, e);
             return false;
         }
     }
     
+    public static boolean save(Document doc, URI uri) {
+//System.out.println("----------------------- Saving: "+uri+". @"+XMLUtils.class);                    
+        if(doc == null || uri == null) {
+            throw new NullPointerException();
+        }
+        try{
+            boolean saved = save(doc, Paths.get(uri).toFile());
+//System.out.println("----------------------- Saved: "+saved+". @"+XMLUtils.class);            
+            if(!saved) {
+                URL url = uri.toURL();
+                try{
+                    return save(doc, url.openConnection().getOutputStream());
+                }catch(IOException ioe) {
+                    logger.log(Level.WARNING, "Error saving document to: "+uri, ioe);
+                    return false;
+                }
+            }else{
+                return saved;
+            }
+        }catch(MalformedURLException e) {
+            logger.log(Level.WARNING, "Error saving document to: "+uri, e);
+            return false;
+        }
+    }
+
     public static boolean save(Document doc, File file) {
         if(doc == null || file == null) {
             throw new NullPointerException();

@@ -18,16 +18,11 @@ package com.bc.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -35,12 +30,21 @@ import java.util.logging.Level;
 
 /**
  * @author Chinomso Bassey Ikwuagwu on Apr 4, 2017 9:42:32 PM
+ * @edited shows changes waiting to be tested
  */
 public class MapBuilderImpl implements MapBuilder {
     
+    private static final XLogger logger = XLogger.getInstance();
+
     private final Map<Class, Method []> entityToMethodsMappings;
     
     private final Set<Class> builtTypes;
+    
+    private final Set<Class> builtTypesWithinCollection;
+    
+    private Class currentCollectionGenericType;
+    
+    private final ReflectionUtil reflection;
     
     private Map target;
     
@@ -62,20 +66,23 @@ public class MapBuilderImpl implements MapBuilder {
     
     private MapBuilder.RecursionFilter recursionFilter;
     
+    private MapBuilder.ContainerFactory containerFactory;
+    
     private MapBuilder.Transformer transformer;
-
+    
     public MapBuilderImpl() {
+        this.reflection = new ReflectionUtil();
         this.builtTypes = new HashSet();
+        this.builtTypesWithinCollection = new HashSet();
         this.entityToMethodsMappings = new HashMap<>();
     }
 
     @Override
     public Map build() {
         
-        Objects.requireNonNull(source);
-        
         this.entityToMethodsMappings.clear();
         this.builtTypes.clear();
+        this.builtTypesWithinCollection.clear();
         
         if(this.methodFilter == null) {
             this.methodFilter = MethodFilter.ACCEPT_ALL;
@@ -85,8 +92,8 @@ public class MapBuilderImpl implements MapBuilder {
             this.recursionFilter = RecursionFilter.DEFAULT;
         }
         
-        if(this.sourceType == null) {
-            this.sourceType = this.source.getClass();
+        if(this.containerFactory == null) {
+            this.containerFactory = ContainerFactory.DEFAULT;
         }
         
         if(this.transformer == null) {
@@ -102,73 +109,99 @@ public class MapBuilderImpl implements MapBuilder {
         }
         
         if(this.target == null) {
-            this.target = new LinkedHashMap();
+            this.target = this.containerFactory.createMapContainer();
         }
         
-        return this.build(sourceType, source, this.transformer, 0, this.target);
+        return this.build(sourceType, source, this.transformer, 0, this.target, this.builtTypes, false);
     }
 
-    protected Map build(Class srcType, Object src, Transformer tx, int depth, Map tgt) {
+    protected Map build(Class srcType, Object src, Transformer transformer, 
+            int depth, Map tgt, Set<Class> alreadyBuilt, boolean addToAlreadyBuilt) {
         
-XLogger logger = XLogger.getInstance();
-Level level = Level.FINER;
-Class cls = this.getClass();
+        if(srcType == null && src != null) {
+            srcType = src.getClass();
+        }
+        if(srcType != null && src == null) {
+            src = this.newInstance(srcType);
+        }
+        
+        final Level level = Level.FINER;
+        final Class cls = this.getClass();
+        
+        logger.log(level, "= = = = = Building Map for: {0}", cls, src);
 
-logger.log(level, "Building Map for entity: {0}", cls, src);
-
+        Objects.requireNonNull(srcType);
         Objects.requireNonNull(src);
 
-        builtTypes.add(srcType);
+        if(addToAlreadyBuilt && alreadyBuilt != null) {
+            alreadyBuilt.add(srcType);
+        }
         
-        Method [] methods = this.getMethods(srcType);
+        final Method [] methods = this.getMethods(srcType);
         
-        StringBuilder buff = new StringBuilder();
+        final StringBuilder buff = new StringBuilder();
         
-        for(Method method:methods) {
+        for(Method method : methods) {
             
-            buff.setLength(0);
-            this.appendColumnName(false, method, buff);
-            String key = buff.length() == 0 ? null : buff.toString();
+            String key = this.appendColumnName(false, method, buff, null);
             
-            boolean foundGetterMethod = key != null;
-            
-            if(!foundGetterMethod) {
-logger.log(level, "Not a getter method: {0}", cls, method.getName());                
+            if(key == null) {
+                logger.log(Level.FINEST, "Not a getter method: {0}", cls, method.getName());                
                 continue;
             }
             
-            if(!this.mayRecurse(logger, level, method, depth)) {
+            logger.log(level, "- - - - - Processing {0}#{1}", cls, srcType.getName(), key); 
+
+            if(!this.filterTypesToAcceptOrIgnore(level, method, depth)) {
                 continue;
             }
             
-            if(!this.methodFilter.accept(method, key)) {
+            if(!this.methodFilter.accept(srcType, src, method, key)) {
+                logger.log(level, "Rejected: {0}#{1}", cls, srcType.getName(), key);     
+                continue;
+            }
+            
+            Class valueType = method.getReturnType();
+            
+            final boolean collectionType = Collection.class.isAssignableFrom(valueType);
+            final Class collectionValueType = !collectionType ? null : (Class)this.reflection.getGenericReturnTypeArguments(method)[0];
+            
+            if(this.isAlreadyBuilt(level, collectionType ? collectionValueType : valueType, key)) {
+                continue;
+            }
+            
+            if(this.maxCollectionSize < 1 && collectionType) {
                 continue;
             }
             
             Object value;
-            if(this.maxCollectionSize < 1 && 
-                    Util.isSubclassOf(method.getReturnType(), Collection.class)) {
-//System.out.println("-------------------------------------------- key: "+key+", return type: "+method.getReturnType());                
-                value = null;
-                
-            }else{
-                
-                try{
+            try{
+                logger.log(level, "BEFORE {0}#{1}", cls, src.getClass().getName(), method.getName());
 
-                    value = method.invoke(src);
+                value = method.invoke(src);
 
-                }catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+                logger.log(level, " AFTER {0}#{1} = {2}", cls, src.getClass().getName(), method.getName(), value);
 
-                    this.logMethodError(logger, cls, e, src, method, key);
+            }catch(IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 
-                    continue;
-                }
+                this.logMethodError(e, srcType, src, method, key);
+
+                continue;
             }
 
-            if(tx != null) {
+            if(transformer != null) {
+                
                 final String oldKey = key;
-                key = tx.transformKey(src, key);
-                value = tx.transformValue(src, oldKey, key, value);
+                
+                key = transformer.transformKey(src, key);
+                
+                value = transformer.transformValue(src, oldKey, key, value);
+                
+                if(value != null && !valueType.isAssignableFrom(value.getClass())) {
+                    logger.log(level, "Changing value type from {0} to {1}",
+                            cls, valueType, value.getClass());
+                    valueType = value.getClass();
+                }
             }
 
             if(!nullsAllowed && value == null) {
@@ -181,6 +214,9 @@ logger.log(level, "Not a getter method: {0}", cls, method.getName());
 
                     Collection collection = (Collection)value;
 
+                    logger.log(level, "Collection: {0} of generic type: {1}, and {2} values", 
+                            cls, key, collectionValueType.getName(), collection.size());
+
                     if(collection.size() > maxCollectionSize) {
 
                         collection = this.truncate(collection, maxCollectionSize);
@@ -188,55 +224,63 @@ logger.log(level, "Not a getter method: {0}", cls, method.getName());
                         value = collection;
                     }
 
-                    if(collection.isEmpty()) {
+                    if(!collection.isEmpty()) {
                         
-logger.log(level, "{0} is an empty collection", cls, key);
+                        final boolean shouldRecurse = this.shouldRecurse(level, collectionValueType, key, null);
 
-                        value = null;
+                        if(!shouldRecurse) {
+                            continue;
+                        }
                         
-                    }else{
-                    
-                        final Class collectionValueType = this.getTypeOfGenericReturnTypesArgument(method);
+                        logger.log(level, "Recursing collection: {0} of generic type: {1}, and {2} values", 
+                                cls, key, collectionValueType.getName(), collection.size());
 
-logger.log(level, "{0} has generic type {1}", cls, key, collectionValueType);                      
-                        
-                        final List list = new ArrayList();
-
-logger.log(level, "Recursing collection: {0} and {1} values", cls, key, collection.size());
+                        final Collection update = this.containerFactory.createCollectionContainer();
 
                         final Iterator iter = collection.iterator();
 
                         ++depth;
-
+                        
+                        this.currentCollectionGenericType = collectionValueType;
+                        
                         while(iter.hasNext()) {
 
-                            Object subValue = iter.next();
-
+                            final Object subValue = iter.next();
+                            
+                            if(!collectionValueType.isAssignableFrom(subValue.getClass())) {
+                            
+                                logger.log(Level.WARNING, "collection generic type: {0} is not assignable from: {1}",
+                                        cls, collectionValueType, subValue.getClass());
+                                continue;       
+                            }
+                            
+                            this.builtTypesWithinCollection.clear();
+                            
                             final Map subMap = build(collectionValueType, subValue, 
-                                    Transformer.NO_OPERATION, depth, new LinkedHashMap());
+                                    Transformer.NO_OPERATION, depth, this.containerFactory.createMapContainer(), 
+                                    this.builtTypesWithinCollection, !iter.hasNext());
 
-                            list.add(subMap);
+                            update.add(subMap);
                         }
+                        
+                        this.currentCollectionGenericType = null;
 
                         --depth;
 
-                        value = list;
+                        value = update;
                     }
-                }else if(value != null){
+                }else if(value != null && valueType != null){
 
-                    final Class valueType = value.getClass();
-                    
-                    final boolean shouldRecurse = this.recursionFilter.shouldRecurse(valueType, value);
-logger.log(level, "Key: {0}, value type: {1}, should recurse: {2}", 
-    cls, key, valueType, shouldRecurse); 
+                    final boolean shouldRecurse = this.shouldRecurse(level, valueType, key, value);
                     
                     if(shouldRecurse) {
-logger.log(level, "Recursing value with key: {0}", cls, key);  
-
+                        
                         ++depth;
-
+                        
                         final Map valueMap = build(valueType, value, 
-                                MapBuilder.Transformer.NO_OPERATION, depth, new LinkedHashMap());
+                                MapBuilder.Transformer.NO_OPERATION, depth, this.containerFactory.createMapContainer(), 
+                                this.currentCollectionGenericType == null ? this.builtTypes : this.builtTypesWithinCollection, 
+                                true);
 
                         --depth;
 
@@ -250,14 +294,43 @@ logger.log(level, "Recursing value with key: {0}", cls, key);
 //        cls, nullsAllowed, (nullsAllowed || value != null), key, value);
 
             if(nullsAllowed || value != null) {
-
+                
                 this.append(srcType, src, key, value, tgt);
             }
         }
-if(logger.isLoggable(level, cls))        
-logger.log(level, "Extracted: {0}", cls, tgt.keySet()); 
+        if(logger.isLoggable(level, cls)) {        
+            logger.log(level, "Extracted: {0}", cls, tgt.keySet());
+        }
 
         return tgt;
+    }
+    
+    public boolean shouldRecurse(Level level, Class valueType, String key, Object value) {
+        
+        final boolean shouldRecurse = 
+                !this.isAlreadyBuilt(level, valueType, key) && // @edited added
+                this.recursionFilter.shouldRecurse(valueType, value);
+
+        logger.log(level, "Should recurse: {0}, {1} {2}", 
+            this.getClass(), shouldRecurse, valueType.getName(), key); 
+
+        return shouldRecurse;
+    }
+    
+    public boolean isAlreadyBuilt(Level level, Class type, String key) {
+        final boolean output;
+        if(this.currentCollectionGenericType == null) {
+            output = this.builtTypes.contains(type);
+        }else{
+            if(this.currentCollectionGenericType.equals(type)) {
+                output = true;
+            }else{
+                output = this.builtTypes.contains(type) || this.builtTypesWithinCollection.contains(type);
+            }
+        }
+        logger.log(level, "Already built: {0}, {1} {2}", 
+            this.getClass(), output, type.getName(), key); 
+        return output;
     }
     
     protected <E> void append(Class<E> entityType, E entity, String key, Object value, Map appendTo) {
@@ -265,7 +338,7 @@ logger.log(level, "Extracted: {0}", cls, tgt.keySet());
         appendTo.put(key, value);
     }
     
-    Collection truncate(Collection collection, int maxSize) {
+    public Collection truncate(Collection collection, int maxSize) {
         
         Collection output;
         
@@ -275,7 +348,8 @@ logger.log(level, "Extracted: {0}", cls, tgt.keySet());
             
         }else{
             
-            output = new ArrayList(maxSize);
+            
+            output = this.containerFactory.createCollectionContainer(maxSize);
             
             int i = 0;
 
@@ -292,54 +366,51 @@ logger.log(level, "Extracted: {0}", cls, tgt.keySet());
         return output;
     }
     
-    boolean mayRecurse(XLogger log, Level level, Method method, int depth) {
+    private boolean filterTypesToAcceptOrIgnore(Level level, Method method, int depth) {
         
         final Class returnType = method.getReturnType();
         
-        final boolean collectionReturnType = Util.isSubclassOf(returnType, Collection.class);
+        final boolean collectionReturnType = Collection.class.isAssignableFrom(returnType);
         
         final Class type;
         if(!collectionReturnType) {
             type = returnType;
         }else{
-            type = this.getTypeOfGenericReturnTypesArgument(method);
+            type = (Class)this.reflection.getGenericReturnTypeArguments(method)[0];
         }
         
-        return this.mayRecurse(log, level, type, depth);
+        return this.filterTypesToAcceptOrIgnore(level, type, depth);
     }
     
-    Class getTypeOfGenericReturnTypesArgument(Method method) {
-        final Type genericReturnType = method.getGenericReturnType();
-        ParameterizedType parameterizedType = (ParameterizedType)genericReturnType;
-        Type [] typeArg = parameterizedType.getActualTypeArguments();
-        return (Class)typeArg[0];
-    }
-    
-    boolean mayRecurse(XLogger log, Level level, Class type, int depth) {
+    private boolean filterTypesToAcceptOrIgnore(Level level, Class type, int depth) {
         
-if(log.isLoggable(level, this.getClass()))
-log.log(level, "Type: {0}, depth < maxDepth: {1}, !typesToIgnore.contains(type): {2}, !builtTypes.contains(type): {3}", 
+if(logger.isLoggable(level, this.getClass()))
+logger.log(level, "Type: {0}, depth < maxDepth: {1}, !typesToIgnore.contains(type): {2}, !builtTypes.contains(type): {3}", 
 this.getClass(), type.getName(), (depth<maxDepth), !typesToIgnore.contains(type), !builtTypes.contains(type));
 
-        return depth < maxDepth  && !builtTypes.contains(type) 
-                && (typesToAccept.contains(type) || (typesToAccept.isEmpty() && !typesToIgnore.contains(type)));
+        return depth < maxDepth  && 
+//                !builtTypes.contains(type) &&  @edited removed
+                (typesToAccept.contains(type) || (typesToAccept.isEmpty() && !typesToIgnore.contains(type)));
     }
     
     Method [] getMethods(Class entityType) {
         Method [] output = entityToMethodsMappings.get(entityType);
         if(output == null) {
-            output = entityType.getMethods();
+            output = entityType.getMethods(); 
+//            XLogger.getInstance().log(Level.FINER, "Entity type: {0}, methods: {1}", 
+//                    this.getClass(), entityType, output == null ? null : Arrays.toString(output));
             entityToMethodsMappings.put(entityType, output);
         }
         return output;
     }
     
-    void logMethodError(XLogger logger, Class cls, Exception e, Object entity, Method method, String key) {
+    void logMethodError(Exception e, Class type, Object value, Method method, String key) {
         StringBuilder msg = new StringBuilder();
-        msg.append("Object: ").append(entity);
+        msg.append("Object type: ").append(type.getName());
+        msg.append(", Object: ").append(value);
         msg.append(", Method: ").append(method.getName());
         msg.append(", key: ").append(key);
-        logger.log(Level.WARNING, msg.toString(), cls, e);
+        logger.log(Level.WARNING, msg.toString(), this.getClass(), e);
     }
 
     /**
@@ -350,20 +421,24 @@ this.getClass(), type.getName(), (depth<maxDepth), !typesToIgnore.contains(type)
      * @return A column whose name matches the input Method name, or null if
      * no such column could be inferred.
      */
-    private void appendColumnName(boolean setter, Method method, StringBuilder buff) {
+    private String appendColumnName(boolean setter, Method method, StringBuilder buff, String outputIfNone) {
+
+        final String output;
+        
+        buff.setLength(0);
 
         final String prefix = setter ? "set" : "get";
         
         String methodName = method.getName();
         
-        if(method.getDeclaringClass() == Object.class || prefix != null && 
+        if(method.getDeclaringClass() == Object.class || 
                 !methodName.startsWith(prefix)) {
         
-            return;
+            output = null;
             
         }else{
         
-            final int prefixLen = prefix == null ? 0 : prefix.length();
+            final int prefixLen = prefix.length();
             final int len = methodName.length();
 
             boolean doneFirst = false;
@@ -382,7 +457,11 @@ this.getClass(), type.getName(), (depth<maxDepth), !typesToIgnore.contains(type)
 
                 buff.append(ch);
             }
+            
+            output = buff.length() == 0 ? null : buff.toString();
         }
+        
+        return output == null ? outputIfNone : output;
     }
 
     @Override
@@ -446,9 +525,24 @@ this.getClass(), type.getName(), (depth<maxDepth), !typesToIgnore.contains(type)
     }
 
     @Override
+    public MapBuilder containerFactory(ContainerFactory containerFactory) {
+        this.containerFactory = containerFactory;
+        return this;
+    }
+
+    @Override
     public MapBuilder transformer(Transformer transformer) {
         this.transformer = transformer;
         return this;
+    }
+    
+    public <T> T newInstance(Class<T> type) {
+        try{
+            return type.getConstructor().newInstance();
+        }catch(NoSuchMethodException | SecurityException | InstantiationException | 
+                IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Class getSourceType() {
