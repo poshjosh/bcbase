@@ -988,7 +988,7 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams
         return query;
     }
 
-    protected void flush(OutputStream c) {
+    public void flush(OutputStream c) {
         if(c != null) {
             try{
                 c.flush();
@@ -998,7 +998,7 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams
         }
     }
     
-    protected void close(Closeable c) {
+    public void close(Closeable c) {
         if(c != null) {
             try{
                 c.close();
