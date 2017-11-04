@@ -16,9 +16,13 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 /**
  * @(#)ConnectionManager.java   04-Apr-2013 20:05:27
@@ -40,12 +44,6 @@ import java.util.logging.Level;
  * @since    2.0
  */
 public class ConnectionManager {
-
-    /** Used for debugging purposes. Short for memory before */
-    protected long mb4 = -1;
-    
-    /** Used for debugging purposes. Short for time before */
-    protected long tb4 = -1;
 
     private boolean running;
     private boolean stopped;
@@ -80,7 +78,7 @@ public class ConnectionManager {
     
     private int fixedLengthStreamingBuffer;
     
-    private List<String> cookies;
+    private Set<String> cookies;
     
     private URLConnection connection;
     
@@ -103,6 +101,7 @@ public class ConnectionManager {
         }
         this.generateRandomUserAgent = true;
         this.userAgents = new UserAgents();
+        this.cookies = new LinkedHashSet<>();
     }
     
     public void reset() {
@@ -114,6 +113,7 @@ public class ConnectionManager {
 //        this.cookies = null;
         this.connection = null;
         this.inputStream = null;
+        this.cookies.clear();
     }
 
     public static boolean exists(String URLName) throws IOException {
@@ -270,9 +270,6 @@ log(Level.FINER, "@stop(int). Is running: {0}", this.isStopped());
             URL url, String charset, String requestPropertyKey, Object requestPropertyValue,
             Map<String, String> outputParameters, boolean encode) throws IOException {
 
-this.mb4 = Runtime.getRuntime().freeMemory();
-this.tb4 = System.currentTimeMillis();
-
         Map<String, Object> requestProperties = this.getRequestProperties(url, charset, requestPropertyKey, requestPropertyValue);
         
         return this.getInputStream(url, requestProperties, outputParameters, encode);
@@ -286,9 +283,6 @@ this.tb4 = System.currentTimeMillis();
             Map<String, String> outputParameters, Map<String, File> outputFiles,
             Map<String, URL> outputUrls, String boundary, boolean encode) throws IOException {
 
-this.mb4 = Runtime.getRuntime().freeMemory();
-this.tb4 = System.currentTimeMillis();
-
         Map<String, Object> requestProperties = this.getRequestProperties(url, charset, requestPropertyKey, requestPropertyValue);
         
         return this.getInputStream(url, requestProperties, outputParameters, outputFiles, outputUrls, boundary, encode);
@@ -296,9 +290,6 @@ this.tb4 = System.currentTimeMillis();
     
     public InputStream getInputStream(URL url) throws IOException {
         
-this.mb4 = Runtime.getRuntime().freeMemory();
-this.tb4 = System.currentTimeMillis();
-
         return this.getInputStream(url, null, null, false);
     }
     
@@ -306,9 +297,6 @@ this.tb4 = System.currentTimeMillis();
             URL url, Map<String, Object> requestProperties) 
             throws IOException {
         
-this.mb4 = Runtime.getRuntime().freeMemory();
-this.tb4 = System.currentTimeMillis();
-
         return this.getInputStream(url, requestProperties, null, false);
     }
     
@@ -326,9 +314,6 @@ this.tb4 = System.currentTimeMillis();
     public InputStream getInputStream(
             URL url, Map<String, Object> requestProperties, 
             Map<String, String> outputParameters, boolean encode) throws IOException {
-
-if(mb4 == -1) { this.mb4 = Runtime.getRuntime().freeMemory(); }        
-if(tb4 == -1) { this.tb4 = System.currentTimeMillis(); }        
 
         URLConnection conn = this.openConnection(url, true, true, requestProperties);
         
@@ -394,9 +379,6 @@ this.log(Level.FINER, "Charset: {0}", charset);
             String boundary,
             boolean encode) throws IOException {
         
-if(mb4 == -1) { this.mb4 = Runtime.getRuntime().freeMemory(); }        
-if(tb4 == -1) { this.tb4 = System.currentTimeMillis(); }        
-
         URLConnection conn = this.openConnection(url, true, true, requestProperties);
         
 this.log(Level.FINER, "Opened connection: {0}", conn);
@@ -511,6 +493,9 @@ this.log(Level.FINER, "Charset: {0}", charset);
     
     protected InputStream getInputStream(URLConnection connection) throws IOException {
 
+final long mb4 = com.bc.util.Util.availableMemory();        
+final long tb4 = System.currentTimeMillis();  
+        
         this.setRunning(true);
 
         HttpURLConnection urlConn = null;
@@ -561,7 +546,7 @@ log("Failed to retrieve response code. Reason:", e);
             
 log(Level.FINER, 
 "Done getting input stream. Spent, time: {0}, memory: {1}", 
-System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
+System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4));
             
             return this.connectionHandler == null ? this.inputStream : this.connectionHandler.getInputStream(this);
             
@@ -589,28 +574,35 @@ log(Level.WARNING, "{0}, Retrying URL: {1}", e, connection.getURL());
     
     protected void updateCookies(URLConnection conn) {
     
+final long mb4 = com.bc.util.Util.availableMemory();         
+final long tb4 = System.currentTimeMillis();  
+
         Map<String, List<String>> headerFields = conn.getHeaderFields(); 
         
         List<String> cookieUpdates = headerFields == null ? null : headerFields.get("Set-Cookie");
 
         if(cookieUpdates != null && !cookieUpdates.isEmpty()) {
 
-            this.setCookies(cookieUpdates);
+            this.addCookies(cookieUpdates);
         }
 log(Level.FINER, 
 "Done updating cookies. Spent, time: {0}, memory: {1}, cookies: {2}", 
-System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, cookieUpdates);
+System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4), cookieUpdates);
     }
     
     protected URLConnection doOpenConnection(URL url, boolean doOutput, boolean doInput, 
             Map<String, Object> requestProperties) throws IOException {
+        
+        requestProperties = requestProperties == null ? null : new HashMap(requestProperties);
 
+final long mb4 = com.bc.util.Util.availableMemory();         
+final long tb4 = System.currentTimeMillis();  
         this.connection = url.openConnection(); 
 log(Level.FINER, 
 "Opened connection. Spent, time: {0}, memory: {1}, connection: {2}", 
-System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, connection);
+System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4), connection);
 
-        connection.setDoOutput(doOutput);
+        connection.setDoOutput(doOutput); 
 
         connection.setDoInput(doInput);
         
@@ -642,7 +634,7 @@ log(Level.FINER, "Streaming FixedLength: {0}, Chunked: {1}",
         this.populateConnection(connection, requestProperties);
 
         if(this.isAddCookies()) {
-            this.addCookies(connection, this.getCookies());
+            this.addCookies(connection, this.cookies);
         }
         
         return connection;
@@ -659,12 +651,12 @@ log(Level.FINER, "Streaming FixedLength: {0}, Chunked: {1}",
         if(this.generateRandomUserAgent) {
             this.addRandomUserAgent(url, requestProperties);
         }
-log(Level.FINER, "Initialized request properties. Spent, time {0}, memory: {1}, properties: {2}", 
-System.currentTimeMillis()-tb4, mb4-Runtime.getRuntime().freeMemory(), requestProperties);
         return requestProperties;
     }
     
     private void populateConnection(URLConnection connection, Map<String, Object> requestProperties) {
+final long mb4 = com.bc.util.Util.availableMemory();         
+final long tb4 = System.currentTimeMillis();  
         if(requestProperties == null) {
             return;
         }
@@ -677,7 +669,7 @@ log(Level.FINER, "Settting request property: [{0}={1}]", key, val);
         }
 log(Level.FINER, 
 "Populated connection with request properties. Spent, time: {0}, memory: {1}", 
-System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
+System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4));
     }
     
     private Object addRandomUserAgent(URL url, Map<String, Object> requestProperties) {
@@ -736,6 +728,9 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
             boolean encode, String charset) 
             throws UnsupportedEncodingException, IOException {
         
+final long mb4 = com.bc.util.Util.availableMemory();         
+final long tb4 = System.currentTimeMillis();  
+
         if(reqParams == null || reqParams.isEmpty()) {
             return;
         }
@@ -749,7 +744,7 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
         output.write(query.getBytes(charset));
 log(Level.FINER, 
 "Written query to output stream. Spent, time: {0}, memory: {1}. Query: {2}", 
-System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, query);
+System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4), query);
     }
 
     public void addMultipartURLs(
@@ -944,9 +939,11 @@ XLogger.getInstance().log(Level.FINER, "{0}. Posting file: {1}={2}", this.getCla
         return total;
     }
     
-    public void addCookies(URLConnection connection, List<String> cookies) {
-        if(cookies == null || cookies.isEmpty()) return;
-        for (String cookie : cookies) {
+    public void addCookies(URLConnection connection, Collection<String> cookieList) {
+final long mb4 = com.bc.util.Util.availableMemory();         
+final long tb4 = System.currentTimeMillis();  
+        if(cookieList == null || cookieList.isEmpty()) return;
+        for (String cookie : cookieList) {
 // The split(";", 2)[0] is there to get rid of cookie attributes which are
 // irrelevant for the server side like expires, path, etc.
             String str = cookie.split(";", 2)[0];
@@ -955,7 +952,7 @@ log(Level.FINER, "Adding cookie: {0}", str);
         }
 log(Level.FINER, 
 "Added {0} cookies to connection. Spent, time: {1}, memory: {2}", 
-cookies.size(), System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4);
+cookieList.size(), System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4));
     }
     
     public String getQueryString(
@@ -963,6 +960,9 @@ cookies.size(), System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory(
             final boolean encode, final String charset) 
             throws UnsupportedEncodingException, IOException {
 
+final long mb4 = com.bc.util.Util.availableMemory();         
+final long tb4 = System.currentTimeMillis();  
+        
 log(Level.FINER, "About to create query string for parameters, encode: {0}", encode);
 
         QueryParametersConverter fmt = new QueryParametersConverter("&"){
@@ -983,7 +983,7 @@ log(Level.FINER, "About to create query string for parameters, encode: {0}", enc
 
 log(Level.FINER, 
 "Created query string from request parameters. Spent, time: {0}, memory: {1}.\nParameters: {2}\nQuery string: {3}", 
-System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams, query);
+System.currentTimeMillis()-tb4, com.bc.util.Util.usedMemory(mb4), reqParams, query);
         
         return query;
     }
@@ -1063,28 +1063,20 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams
         XLogger.getInstance().log(level, fmt, this.getClass(), val_0, val_1, val_2, val_4);
     }
     
-    public void setMaxTrials(int i) {
-        this.retryAfterExceptionFilter.setMaxTrials(i);
-    }
-
     public int getMaxTrials() {
         return this.retryAfterExceptionFilter.getMaxTrials();
     }
 
-    public void setSleepTime(long millis) {
-        this.retryAfterExceptionFilter.setSleepTime(millis);
-    }
-    
     public long getSleepTime() {
         return this.retryAfterExceptionFilter.getSleepTime();
     }
     
-    public void setCookies(List<String> cookies) {
-        this.cookies = cookies;
+    public void addCookies(Collection<String> cookiesToAdd) {
+        this.cookies.addAll(cookiesToAdd);
     }
 
     public List<String> getCookies() {
-        return cookies;
+        return new ArrayList(cookies);
     }
 
     public synchronized boolean isStopped() {
@@ -1207,3 +1199,25 @@ System.currentTimeMillis()-tb4, Runtime.getRuntime().freeMemory()-mb4, reqParams
         this.userAgents = userAgents;
     }
 }
+/**
+ * 
+    public void setMaxTrials(int i) {
+        this.retryAfterExceptionFilter = new RetryConnectionFilter(
+                this.retryAfterExceptionFilter.isRetryNoConnectionException(),
+                this.retryAfterExceptionFilter.isRetryFailedConnectionException(),
+                i,
+                this.retryAfterExceptionFilter.getSleepTime()
+        );
+    }
+
+    public void setSleepTime(long millis) {
+        this.retryAfterExceptionFilter = new RetryConnectionFilter(
+                this.retryAfterExceptionFilter.isRetryNoConnectionException(),
+                this.retryAfterExceptionFilter.isRetryFailedConnectionException(),
+                this.retryAfterExceptionFilter.getMaxTrials(),
+                millis
+        );
+    }
+    
+ * 
+ */

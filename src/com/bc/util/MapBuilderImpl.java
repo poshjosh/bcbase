@@ -156,7 +156,7 @@ public class MapBuilderImpl implements MapBuilder {
                 continue;
             }
             
-            if(!this.methodFilter.accept(srcType, src, method, key)) {
+            if(!this.methodFilter.test(srcType, src, method, key)) {
                 logger.log(level, "Rejected: {0}#{1}", cls, srcType.getName(), key);     
                 continue;
             }
@@ -308,8 +308,7 @@ public class MapBuilderImpl implements MapBuilder {
     public boolean shouldRecurse(Level level, Class valueType, String key, Object value) {
         
         final boolean shouldRecurse = 
-                !this.isAlreadyBuilt(level, valueType, key) && // @edited added
-                this.recursionFilter.shouldRecurse(valueType, value);
+                !this.isAlreadyBuilt(level, valueType, key) && this.recursionFilter.test(valueType, value);
 
         logger.log(level, "Should recurse: {0}, {1} {2}", 
             this.getClass(), shouldRecurse, valueType.getName(), key); 

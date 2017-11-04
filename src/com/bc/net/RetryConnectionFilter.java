@@ -1,13 +1,13 @@
 package com.bc.net;
 
-import com.bc.util.XLogger;
+import com.bc.functions.FindExceptionInChain;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.ConnectException;
-import java.net.NoRouteToHostException;
-import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.logging.Level;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.logging.Logger;
 /**
  * @(#)RetryConnectionFilter.java   04-Apr-2013 20:05:18
  *
@@ -20,35 +20,52 @@ import java.util.logging.Level;
  * @version  2.0
  * @since    2.0
  */
-public class RetryConnectionFilter 
-        implements Serializable {
+public class RetryConnectionFilter implements Predicate<Throwable>, Serializable {
 
-    private boolean retryNoConnectionException;
-    private boolean retryFailedConnectionException;
-    private int retrials;
-    private int maxRetrials;
-    private long retrialInterval;
+    private static transient final Logger logger = 
+            Logger.getLogger(RetryConnectionFilter.class.getName());
+
+    private final boolean retryNoConnectionException;
+    private final boolean retryFailedConnectionException;
+    private final int maxRetrials;
+    private final long retrialInterval;
     
-    public RetryConnectionFilter() {
-        this.retryNoConnectionException = true;
-        this.retryFailedConnectionException = true;
-        this.maxRetrials = Integer.MAX_VALUE;
-        this.retrialInterval = 5000;
+    private final BiFunction<Throwable, Predicate<Throwable>, Optional<Throwable>> findExceptionInChain;
+    
+    private int retrials;
+    
+    public RetryConnectionFilter(int maxRetrials, long retrialInterval) {
+        this(true, true, maxRetrials, retrialInterval);
     }
 
-    public RetryConnectionFilter(int maxRetrials, long retrialInterval) {
-        this.retryNoConnectionException = true;
-        this.retryFailedConnectionException = true;
+    public RetryConnectionFilter(RetryConnectionFilter filter) {
+        this(filter.retryNoConnectionException, 
+                filter.retryFailedConnectionException,
+                filter.maxRetrials, filter.retrialInterval);
+    }
+
+    public RetryConnectionFilter(
+            boolean retryNoConnectionException, 
+            boolean retryFailedConnectionException, 
+            int maxRetrials, long retrialInterval) {
+        this.retryNoConnectionException = retryNoConnectionException;
+        this.retryFailedConnectionException = retryFailedConnectionException;
         this.maxRetrials = maxRetrials;
         this.retrialInterval = retrialInterval;
+        this.findExceptionInChain = new FindExceptionInChain();
     }
     
-    public void reset() {
-        retrials = 0;
+    public RetryConnectionFilter copy() {
+        return new RetryConnectionFilter(this);
+    }
+
+    public synchronized boolean accept(Throwable t) {
+        return this.test(t);
     }
     
-    public synchronized boolean accept(Throwable e) {
-        return this.acceptFailedConnectionException(e) || this.acceptNoConnectionException(e);
+    @Override
+    public synchronized boolean test(Throwable t) {
+        return this.acceptFailedConnectionException(t) || this.acceptNoConnectionException(t);
     }
 
     /**
@@ -58,73 +75,44 @@ public class RetryConnectionFilter
      * {@link IOException IOException} which is thrown is caught and the process
      * repeated till all the data is read or any other
      * {@link IOException IOException} is thrown.
-     * @param e The Exception to Filter (i.e accept or decline)
+     * @param t The Exception to Filter (i.e accept or decline)
      * @return true if the Exception was accepted, false otherwise
      */
-    protected synchronized boolean acceptFailedConnectionException(Throwable e) {
+    protected synchronized boolean acceptFailedConnectionException(Throwable t) {
 
         if(!this.retryFailedConnectionException) return false;
         
-        if(e instanceof SocketTimeoutException || e instanceof ConnectException
-                || e instanceof NoRouteToHostException) {
-
-            ++retrials;
-            
-            try{this.wait(this.retrialInterval);}catch(InterruptedException ie)
-            { XLogger.getInstance().log(Level.FINE, "{0}", this.getClass(), ie); }
-            finally{ this.notifyAll(); }
-
-            return this.hasMoreTrials();
-
-        }else{
-
-            String exceptionMsg = e.getMessage();
-
-            if (exceptionMsg != null){
-                
-                if(exceptionMsg.contains("is closed") | exceptionMsg.contains("IS CLOSED") |
-                        exceptionMsg.contains("Connection reset")) { ///// Added recently /////
-
-                    ++retrials;
-                    
-                    try{this.wait(this.retrialInterval);}catch(InterruptedException ie)
-                    { XLogger.getInstance().log(Level.FINE, "{0}", this.getClass(), ie); }
-                    finally{ this.notifyAll(); }
-
-                    return this.hasMoreTrials();
-                }
-            }
-        }
-
-        return false;
+        return this.findExceptionInChain.apply(t, new FailedConnectionTest()).isPresent();
     }
 
     /**
      * Accepts {@link java.net.UnknownHostException} if 
      * {@linkplain #retryNoConnectionException} is true.
-     * @param e The Exception to Filter (i.e accept or decline)
+     * @param t The Exception to Filter (i.e accept or decline)
      * @return true if the Exception was accepted, false otherwise
      */
-    protected synchronized boolean acceptNoConnectionException(Throwable e) {
+    protected synchronized boolean acceptNoConnectionException(Throwable t) {
 
         if(!this.retryNoConnectionException) return false;
         
         // UnknownHostException usually signals that the internet connection
         // has been lost
-        if (e instanceof UnknownHostException) {
+        return this.findExceptionInChain.apply(t, (e) -> e instanceof UnknownHostException).isPresent();
+    }
+    
+    protected synchronized boolean handleException(Throwable t) {
+        
+        ++retrials;
 
-            ++retrials;
-            
-            try{this.wait(this.retrialInterval);}catch(InterruptedException ie)
-            { XLogger.getInstance().log(Level.FINE, "{0}", this.getClass(), ie); }
-            finally{ this.notifyAll(); }
-
-            return this.hasMoreTrials();
-
-        }else{
-
-            return false;
+        try{
+            this.wait(this.retrialInterval);
+        }catch(InterruptedException ie) { 
+            logger.fine(() -> ie.toString()); 
+        }finally{ 
+            this.notifyAll(); 
         }
+
+        return this.hasMoreTrials();
     }
     
     public boolean hasMoreTrials() {
@@ -135,39 +123,19 @@ public class RetryConnectionFilter
         return retrialInterval;
     }
 
-    public void setSleepTime(long sleepTime) {
-        this.retrialInterval = sleepTime;
-    }
-
     public boolean isRetryFailedConnectionException() {
         return retryFailedConnectionException;
-    }
-
-    public void setRetryFailedConnectionException(boolean retryFailedConnectionException) {
-        this.retryFailedConnectionException = retryFailedConnectionException;
     }
 
     public boolean isRetryNoConnectionException() {
         return retryNoConnectionException;
     }
 
-    public void setRetryNoConnectionException(boolean retryNoConnectionException) {
-        this.retryNoConnectionException = retryNoConnectionException;
-    }
-
     public int getMaxTrials() {
         return maxRetrials;
     }
 
-    public void setMaxTrials(int maxTrials) {
-        this.maxRetrials = maxTrials;
-    }
-
     public int getTrials() {
         return retrials;
-    }
-
-    public void setTrials(int trials) {
-        this.retrials = trials;
     }
 }//END

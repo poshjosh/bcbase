@@ -15,6 +15,7 @@
  */
 package com.bc.util;
 
+import com.bc.net.UrlUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,7 +50,7 @@ public class UtilTest {
     public void testGetImageUrlRegex() {
         System.out.println("testGetImageUrlRegex");
         
-        final String regex = Util.getImageUrlRegex();
+        final String regex = UrlUtil.getImageUrlRegex();
 System.out.println("Regex: "+regex);        
         String input = "http://wwww.looseboxes.com/images/appicon.jpeg";
         boolean matches = Pattern.matches(regex, input);

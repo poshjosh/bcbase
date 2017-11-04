@@ -22,32 +22,42 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 
 /**
  * @author Chinomso Bassey Ikwuagwu on Apr 4, 2017 9:50:43 PM
  */
 public interface MapBuilder {
     
+    @FunctionalInterface
     interface MethodFilter {
         
-        MethodFilter ACCEPT_ALL = new MethodFilter() {
-            @Override
-            public boolean accept(Class type, Object object, Method method, String columnName) {
-                return true;
-            }
-        };
+        MethodFilter ACCEPT_ALL = (Class type, Object instance, Method method, String columnName) -> true;
         
-        boolean accept(Class type, Object object, Method method, String columnName);
+        boolean test(Class type, Object instance, Method method, String columnName);
+        
+        default MethodFilter and(MethodFilter other) {
+            return (type, instance, method, columnName) -> 
+                    this.test(type, instance, method, columnName)
+                    && other.test(type, instance, method, columnName);
+        }
+        
+        default MethodFilter negate() {
+            return (type, instance, method, columnName) -> !this.test(type, instance, method, columnName);
+        }
+
+        default MethodFilter or(MethodFilter other) {
+            return (type, instance, method, columnName) -> 
+                    this.test(type, instance, method, columnName)
+                    || other.test(type, instance, method, columnName);
+        }
     }
     
-    interface RecursionFilter {
-        RecursionFilter DEFAULT = new RecursionFilter() {
-            @Override
-            public boolean shouldRecurse(Class type, Object value) {
-                return !type.isPrimitive();
-            }
-        };
-        boolean shouldRecurse(Class type, Object value);
+    @FunctionalInterface
+    interface RecursionFilter extends BiPredicate<Class, Object> {
+        
+        RecursionFilter DEFAULT = (Class type, Object instance) -> !type.isPrimitive();
     }
     
     interface ContainerFactory{

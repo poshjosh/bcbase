@@ -1,12 +1,11 @@
 package com.bc.util.concurrent;
 
-import com.bc.util.XLogger;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * <p>
@@ -19,6 +18,8 @@ import java.util.logging.Level;
  * @author Josh
  */
 public class BoundedExecutorService extends ThreadPoolExecutor implements RejectedExecutionHandler {
+
+    private static final Logger logger = Logger.getLogger(BoundedExecutorService.class.getName());
 
     public BoundedExecutorService(String threadPoolName) {
         this(threadPoolName, false);
@@ -62,6 +63,8 @@ public class BoundedExecutorService extends ThreadPoolExecutor implements Reject
      */
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-XLogger.getInstance().log(Level.FINE, "Execution rejected by Executor: {0}", this.getClass(), executor);
+        logger.warning(
+                () -> "= = = = = = = = = = = = = Execution rejected by Executor = = = = = = = = = = = = =\n" + 
+                executor + "\n Executor's ThreadFactory: " + executor.getThreadFactory());
     }
 }

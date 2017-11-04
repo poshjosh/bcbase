@@ -47,4 +47,11 @@ public class NamedThreadFactory implements ThreadFactory {
             t.setPriority(Thread.NORM_PRIORITY);
         return t;
     }
+
+    @Override
+    public String toString() {
+        return "NamedThreadFactory{" + "group=" + (group==null?null:group.getName()) + 
+                ", threadNumber=" + threadNumber + ", namePrefix=" + namePrefix + 
+                ", daemonThreads=" + daemonThreads + '}';
+    }
 }

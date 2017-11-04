@@ -172,9 +172,7 @@ public class JsonBuilder<E extends Appendable> {
         
         if(value == null) {
             appendTo.append("null");
-            return;
-        }        
-
+        }else        
         if(value instanceof String) {
             appendTo.append('\"');
             String sval = String.valueOf(value);
@@ -184,52 +182,35 @@ public class JsonBuilder<E extends Appendable> {
                 appendTo.append(sval);
             }    
             appendTo.append('\"');
-            return;
-        }        
-
+        }else     
         if(value instanceof Double){
             appendTo.append(String.valueOf(value));
-        }
-
+        }else
         if(value instanceof Float){
             appendTo.append(String.valueOf(value));
-        }		
-
+        }else		
         if(value instanceof Number) {
             appendTo.append(String.valueOf(value));
-            return;
-        }        
-
+        }else        
         if(value instanceof Boolean) {
             appendTo.append(String.valueOf(value));
-            return;
-        }        
-
+        }else     
 //        if((value instanceof JSONAware)) {
 //            appendTo.append(((JSONAware)value).toJSONString());
 //            return;
-//        }        
-
+//        }else      
         if(value instanceof Map) {
             appendJSONString((Map)value, appendTo);
-            return;
-        }        
-
+        }else        
         if(value instanceof Collection) {
             appendJSONString((Collection)value, appendTo);
-            return;
-        }  
-        
+        }else
         if(value instanceof Object[]) {
             appendJSONString((Object[])value, appendTo);
-            return;
-        }
-        
-        if(value instanceof Object) {
+        }else {
             appendTo.append('\"');
             appendTo.append(String.valueOf(value));
             appendTo.append('\"');
-            return;
         }
     }
     

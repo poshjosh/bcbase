@@ -1,5 +1,6 @@
 package com.bc.net;
 
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -8,7 +9,7 @@ import java.util.Map;
 /**
  * @author USER
  */
-public class UserAgents {
+public class UserAgents implements Serializable {
     
     private Map<String, String> cache;
 

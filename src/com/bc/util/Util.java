@@ -1,6 +1,6 @@
 package com.bc.util;
 
-import java.net.MalformedURLException;
+import com.bc.net.UrlUtil;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,23 +25,20 @@ import java.util.logging.Level;
  */
 public class Util {
 
-  public final static String getImageUrlRegex() {
-      return getImageUrlRegex("jpg", "gif", "png", "jpeg");
+  public final static long availableMemory() {
+    final Runtime runtime = Runtime.getRuntime();
+    final long totalMemory = runtime.totalMemory(); // current heap allocated to the VM process
+    final long freeMemory = runtime.freeMemory(); // out of the current heap, how much is free
+    final long maxMemory = runtime.maxMemory(); // Max heap VM can use e.g. Xmx setting
+    final long usedMemory = totalMemory - freeMemory; // how much of the current heap the VM is using
+    final long availableMemory = maxMemory - usedMemory; // available memory i.e. Maximum heap size minus the current amount used
+    return availableMemory;
+  }  
+
+  public final static long usedMemory(long bookmarkMemory) {
+    return bookmarkMemory - availableMemory();
   }
-    
-  public final static String getImageUrlRegex(String... imageExtensions) {
-// Example:   (?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*\\.(?:jpe?g|gif|png))(?:\\?([^#]*))?(?:#(.*))?      
-      StringBuilder builder = new StringBuilder("(?:([^:/?#]+):)?(?://([^/?#]*))?([^?#]*\\.(?:");
-      for(int i=0; i<imageExtensions.length; i++) {
-          builder.append(imageExtensions[i]);
-          if(i < imageExtensions.length - 1) {
-              builder.append('|');
-          }
-      }
-      builder.append("))(?:\\?([^#]*))?(?:#(.*))?");
-      return builder.toString();
-  }
-    
+  
   public final static String removeNonBasicMultilingualPlaneChars(String test) {
       
     StringBuilder sb = new StringBuilder(test.length());
@@ -93,15 +90,11 @@ public class Util {
      * method argument is a malformed URL
      */
     public static String getBaseURL(String url) {
-        try{
-            return getBaseURL(new URL(url));
-        }catch(MalformedURLException e) {
-            return null;
-        }
+        return UrlUtil.getBaseURL(url);
     }
     
     public static String getBaseURL(URL url) {
-        return url.getProtocol() + "://" + url.getHost();
+        return UrlUtil.getBaseURL(url);
     }
 
     /**

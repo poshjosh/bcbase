@@ -86,4 +86,111 @@ public class ReflectionUtil {
         final Type genericReturnType = method.getGenericType();
         return ((ParameterizedType)genericReturnType).getActualTypeArguments();
     }
+
+    public Object getValue(Object object, String name) {
+        
+        return this.getValue(object.getClass(), object, object.getClass().getDeclaredMethods(), name);
+    }
+    
+    public Object getValue(Class aClass, 
+            Object object, Method [] methods, String name) {
+        
+        final Method method = getMethod(false, methods, name);
+
+        if(method == null) {
+            throw new IllegalArgumentException("Could not find matching method for: "+name+" in class: "+aClass);
+        }
+        
+        try{
+            
+            return method.invoke(object);
+            
+        }catch(Exception e) {
+            
+            StringBuilder builder = new StringBuilder("Error getting entity value.");
+            builder.append(" Entity: ").append(object);
+            builder.append(", Method: ").append(method==null?null:method.getName());
+            builder.append(", Column: ").append(name);
+
+            throw new UnsupportedOperationException(builder.toString(), e);
+        }
+    }
+
+    public void setValue(Object object, String name, Object value) {
+        
+        this.setValue(object.getClass(), object, object.getClass().getDeclaredMethods(), name, value);
+    }
+    
+    public void setValue(Class aClass, 
+            Object object, Method [] methods, 
+            String name, Object value) {
+        
+        final Method method = getMethod(true, methods, name);
+        if(method == null) {
+            throw new IllegalArgumentException("Could not find matching method for: "+name+" in class: "+aClass);
+        }
+        
+        try{
+            
+            method.invoke(object, value);
+            
+        }catch(Exception e) {
+            
+            StringBuilder builder = new StringBuilder("Error setting entity value.");
+            builder.append(" Object: ").append(object);
+            builder.append(", Method: ").append(method==null?null:method.getName());
+            builder.append(", Name: ").append(name);
+            builder.append(", Value: ").append(value);
+            builder.append(", Value type: ").append(value==null?null:value.getClass());
+            builder.append(", Expected type: ").append(method==null?null:method.getParameterTypes()[0]);
+
+            throw new UnsupportedOperationException(builder.toString(), e);
+        }
+    }
+    
+    /**
+     * Methods of the {@link java.lang.Object} class are not considered
+     * @param setter boolean, if true only setter methods are considered
+     * @param methods The array of methods within which to search for a 
+     * method matching the specified column name.
+     * @param columnName The column name for which a method with a matching
+     * name is to be returned.
+     * @return A method whose name matches the input columnName or null if none was found
+     */
+    public Method getMethod(boolean setter, Method [] methods, String columnName) {
+        Method method = null;
+        final String prefix = setter ? "set" : "get";
+        // remove all _
+        //
+        String normalizedColName = removeAll(columnName, '_').toString();
+        for(Method m:methods) {
+            if(m.getDeclaringClass() == Object.class) {
+                continue;
+            }
+            String methodName = m.getName();
+            if(!methodName.startsWith(prefix)) {
+                continue;
+            }
+            // remove get or set
+            //
+            String normalizedMethodName = methodName.substring(prefix.length());
+            if(normalizedColName.equalsIgnoreCase(normalizedMethodName)) {
+                method = m;
+                break;
+            }
+        }
+        return method;
+    }
+    
+    private StringBuilder removeAll(String input, char toRemove) {
+        StringBuilder builder = new StringBuilder(input.length());
+        for(int i=0; i<input.length(); i++) {
+            char ch = input.charAt(i);
+            if(ch == toRemove) {
+                continue;
+            }
+            builder.append(ch);
+        }
+        return builder;
+    }
 }
