@@ -209,15 +209,15 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    print(builder);
+    builder.append(super.toString());
+    appendFields(builder);
     return builder.toString();
   }
   
-  public void print(StringBuilder builder) {
-    builder.append(getTaskName());
+  public void appendFields(StringBuilder builder) {
     builder.append("{Started=").append(this.started);
     if(this.startTime > 0) {
-      builder.append(", start time=").append(this.startTime);
+      builder.append(", startTime=").append(this.startTime);
     }
     builder.append(", stopInitiated=").append(this.stopInitiated);
     builder.append(", stopped=").append(this.stopped);

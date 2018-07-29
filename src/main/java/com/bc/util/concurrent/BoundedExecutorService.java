@@ -49,7 +49,7 @@ public class BoundedExecutorService extends ThreadPoolExecutor implements Reject
             int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit timeUnit, int queueCapacity, boolean daemonThreads) {
         
         super(corePoolSize, maximumPoolSize, keepAliveTime, timeUnit, 
-                queueCapacity <= 0 ? new SynchronousQueue<Runnable>() : new LinkedBlockingQueue<Runnable>(queueCapacity), 
+                queueCapacity <= 0 ? new SynchronousQueue<>() : new LinkedBlockingQueue<>(queueCapacity), 
                 new NamedThreadFactory(threadPoolName, daemonThreads));
 
         BoundedExecutorService.this.setRejectedExecutionHandler(BoundedExecutorService.this);
