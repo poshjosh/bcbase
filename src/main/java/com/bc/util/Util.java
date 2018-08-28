@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
@@ -155,14 +156,13 @@ public class Util {
      * @param size The returned int will be of range: 0 - <tt>size</tt>
      * @return  a pseudorandom <code>int</code> greater than or equal 
      * to <code>0</code> and less than the input<code>size</code>.
-     * @see     com.bc.util.Util#random(double) 
-     * @see     java.lang.Math#random()
+     * @see https://stackoverflow.com/questions/363681/how-do-i-generate-random-integers-within-a-specific-range-in-java?rq=1
      */
     public static int randomInt(int size) {
-        
-        double numbr = random(size);
-
-        return (int)Math.floor(numbr);
+//        final double numbr = random(size);
+//        return (int)Math.floor(numbr);
+        final int randomNum = ThreadLocalRandom.current().nextInt(size);
+        return randomNum;
     }
     
     /**
@@ -185,15 +185,14 @@ public class Util {
      * @param size The returned double will be of range: 0 - <tt>size</tt>
      * @return  a pseudorandom <code>double</code> greater than or equal 
      * to <code>0</code> and less than the input<code>size</code>.
-     * @see     java.lang.Math#random()
+     * @see https://stackoverflow.com/questions/363681/how-do-i-generate-random-integers-within-a-specific-range-in-java?rq=1
      */
     public static double random(double size) {
-        
-        double random = Math.random();
-
-        double numbr = (random * size);
-
-        return numbr;
+//        double random = Math.random();
+//        double numbr = (random * size);
+//        return numbr;
+        final double randomDouble = ThreadLocalRandom.current().nextDouble(size);
+        return randomDouble;
     }
     
     public static boolean removeNulls(Collection c) {

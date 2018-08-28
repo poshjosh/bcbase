@@ -19,7 +19,7 @@ import java.util.logging.Logger;
  */
 public class BoundedExecutorService extends ThreadPoolExecutor implements RejectedExecutionHandler {
 
-    private static final Logger logger = Logger.getLogger(BoundedExecutorService.class.getName());
+    private static final Logger LOG = Logger.getLogger(BoundedExecutorService.class.getName());
 
     public BoundedExecutorService(String threadPoolName) {
         this(threadPoolName, false);
@@ -63,8 +63,8 @@ public class BoundedExecutorService extends ThreadPoolExecutor implements Reject
      */
     @Override
     public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-        logger.warning(
-                () -> "= = = = = = = = = = = = = Execution rejected by Executor = = = = = = = = = = = = =\n" + 
-                executor + "\n Executor's ThreadFactory: " + executor.getThreadFactory());
+//        LOG.warning(() -> "EXECUTION REJECTED. Runnable type: " + r.getClass().getName());
+        LOG.fine(() -> "Runnable: " + r + "\nExecutor: " + executor + 
+                        "\nExecutor's ThreadFactory: " + executor.getThreadFactory());
     }
 }
