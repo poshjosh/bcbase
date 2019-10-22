@@ -4,13 +4,17 @@ import java.io.Serializable;
 
 public interface StoppableTask<R> extends Task<R>, Serializable {
 
-    default boolean isRunning() {
-        return this.isStarted() && !this.isCompleted() && !this.isStopped();
-    }
+    boolean isRunning();
+    
+    boolean isTimedout(long timeout);
+    
+    long getTimeSpent();
     
     void stop();
   
     long getStartTime();
+    
+    long getStopTime();
   
     boolean isStopRequested();
   

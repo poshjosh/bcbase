@@ -10,16 +10,15 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
     
   private boolean attemptedPre;
   
-  private boolean started;
-  private boolean stopInitiated;
-  private boolean stopped;
+  private boolean stopRequested;
   
   private long startTime;
+  private long stopTime;
   
   public void reset() {
     this.setStarted(false);
-    this.stopInitiated = false;
-    this.stopped = false;
+    this.stopRequested = false;
+    this.setStopped(false);
     this.attemptedPre = false;
   }
   
@@ -76,13 +75,14 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
    * Called from within the {@link #call() call()} method.
    * <p>
    * {@link #post() post()} is called from within {@link #call() call()} method after 
-   * {@link #doCall() doCall()} method and only if {@link #pre() pre()} method earlier returned successfully. 
+   * {@link #doCall() doCall()} method.
    * </p>
    * <p>Default implementation does nothing</p>
+   * @param preSuccessful This value is a reflection of whether {@link #pre()} returned successfully.
    * @see #call() 
    * @see #doCall()
    */
-  protected void post() {}
+  protected void post(boolean preSuccessful) {}
   
   /**
    * Simply calls {@link #call() call()}
@@ -114,10 +114,10 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
     }
     
     this.setStarted(true);
-    this.stopInitiated = false;
-    this.stopped = false;
+    this.stopRequested = false;
+    this.setStopped(false);
     
-    boolean preCalled = false;
+    boolean preSuccessful = false;
     
     try {
         
@@ -127,7 +127,7 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
         
         pre();
         
-        preCalled = true;
+        preSuccessful = true;
       }
       
       result = doCall();
@@ -142,12 +142,9 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
       
     }finally {
         
-      this.stopped = true;
+      this.setStopped(true);
       
-      if(preCalled) {
-          
-        post();
-      }
+      post(preSuccessful);
       
       LOG.log(Level.FINER, "AFTER #call(). {0}", this);
     }
@@ -156,7 +153,6 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
   }
 
   protected void setStarted(boolean started) {
-    this.started = started;
     if(started) {
       this.startTime = System.currentTimeMillis();
     }else{
@@ -165,45 +161,68 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
   }
   
   protected void setStopped(boolean stopped) {
-    this.stopped = stopped;
+    if(stopped) {
+      this.stopTime = System.currentTimeMillis();
+    }else{
+      this.stopTime = 0L;
+    }
   }
 
   @Override
   public void stop() {
-    this.stopInitiated = true;
+    this.stopRequested = true;
   }
   
   @Override
+  public boolean isRunning() {
+    return this.isStarted() && !this.isCompleted() && !this.isStopped();
+  }
+
+  @Override
+  public boolean isTimedout(long timeout) {
+    return this.getStartTime() > 0 && timeout > 0 && this.getTimeSpent() > timeout;
+  }
+
+  @Override
+  public long getTimeSpent() {
+    final long result;
+    if(this.isStarted()) {
+      result = this.isStopped() ? this.getStopTime() - this.getStartTime() :
+          System.currentTimeMillis() - this.getStartTime();
+    }else{
+      result = 0L;
+    }
+    return result;
+  }
+
+  @Override
   public boolean isStopRequested() {
-    return this.stopInitiated;
+    return this.stopRequested;
   }
   
   @Override
   public boolean isCompleted() {
-    return (this.started) && (this.stopped) && (!this.stopInitiated);
+    return this.isStarted() && this.isStopped() && !this.stopRequested;
   }
   
   @Override
   public boolean isStarted() {
-    return this.started;
+    return this.startTime > 0;
   }
   
   @Override
   public boolean isStopped() {
-    return this.stopped;
+    return this.stopTime > 0;
   }
   
-  public boolean isTimedout(long timeout) {
-    return this.getStartTime() > 0 && timeout > 0 && this.getTimeSpent() > timeout;
-  }
-    
-  public long getTimeSpent() {
-    return System.currentTimeMillis() - this.getStartTime();
-  }
-    
   @Override
   public long getStartTime() {
     return startTime;
+  }
+
+  @Override
+  public long getStopTime() {
+    return stopTime;
   }
   
   @Override
@@ -215,12 +234,13 @@ public abstract class AbstractStoppableTask<R> implements Serializable, Stoppabl
   }
   
   public void appendFields(StringBuilder builder) {
-    builder.append("{Started=").append(this.started);
-    if(this.startTime > 0) {
+    builder.append("{Started=").append(this.isStarted());
+    if(this.isStarted()) {
       builder.append(", startTime=").append(this.startTime);
+      builder.append(", timeSpent=").append(this.getTimeSpent());
     }
-    builder.append(", stopInitiated=").append(this.stopInitiated);
-    builder.append(", stopped=").append(this.stopped);
+    builder.append(", stopInitiated=").append(this.stopRequested);
+    builder.append(", stopped=").append(this.isStopped());
     builder.append('}');
   }
 }

@@ -7,6 +7,7 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Locale;
+import java.util.logging.Logger;
 
 
 /**
@@ -23,6 +24,8 @@ import java.util.Locale;
  * @since    2.0
  */
 public abstract class CurrencyFormatter implements Serializable {
+
+    private static final Logger LOG = Logger.getLogger(CurrencyFormatter.class.getName());
     
     private MathContext mathContext;
     
@@ -47,11 +50,11 @@ public abstract class CurrencyFormatter implements Serializable {
      * @return A String Object of price format eg <tt>$10.00</tt>
      */
     public String convertCurrency(Object price, Locale from, Locale to) {
-//Logger.getLogger(this.getClass().getName()).fine("BEFORE price: " + price);
+//LOG.fine("BEFORE price: " + price);
         if (price == null) return null;
         Number number = this.priceToNumber(price, from, to);
         String output = this.numberToPrice(number, to);
-//Logger.getLogger(this.getClass().getName()).fine("AFTER converted price: " + output);
+//LOG.fine("AFTER converted price: " + output);
         return output;
     }
     
@@ -66,7 +69,7 @@ public abstract class CurrencyFormatter implements Serializable {
      */
     public Number convertNumber(Object numberObject, Locale from, Locale to) {
 
-//Logger.getLogger(this.getClass().getName()).fine("BEFORE. Number: " + numberObject);
+//LOG.fine("BEFORE. Number: " + numberObject);
 
         if (numberObject == null) {
             return null;
@@ -113,12 +116,12 @@ public abstract class CurrencyFormatter implements Serializable {
     private BigDecimal multiply(double a, double b) {
         
         BigDecimal output = BigDecimal.valueOf(a).multiply(BigDecimal.valueOf(b), getMatchContext());
-//Logger.getLogger(Util.class.getName()).fine(a + " multiply " + b + " = " + output);
+//LOG.fine(a + " multiply " + b + " = " + output);
         return output;
     }
     
     public String numberToPrice(Object number, Locale oldLocale, Locale newLocale) {
-//Logger.getLogger(this.getClass().getName()).fine("BEFORE number: " + number);
+//LOG.fine("BEFORE number: " + number);
         if(number == null) return null;
         // Convert the number to the new rate
         //
@@ -126,7 +129,7 @@ public abstract class CurrencyFormatter implements Serializable {
         
         String price = this.numberToPrice(number, newLocale);
         
-//Logger.getLogger(this.getClass().getName()).fine("AFTER converted price: " + price);
+//LOG.fine("AFTER converted price: " + price);
         return price;
     }
     
@@ -138,27 +141,27 @@ public abstract class CurrencyFormatter implements Serializable {
      * @return A String Object of price format eg <tt>$10.00</tt>
      */
     public String numberToPrice(Object numberObject, Locale locale) {
-//Logger.getLogger(this.getClass().getName()).fine("BEFORE number: " + number);
+//LOG.fine("BEFORE number: " + number);
         if(numberObject == null) return null;
 
         Number number = this.getNumber(numberObject, locale);
         
         Object price = NumberFormat.getCurrencyInstance(locale).format(number);
         
-//Logger.getLogger(this.getClass().getName()).fine("AFTER price: " + number);
+//LOG.fine("AFTER price: " + number);
         return price instanceof BigDecimal ? 
                 ((BigDecimal)numberObject).toPlainString() : price.toString();
     }
 
     public Number priceToNumber(Object price, Locale oldLocale, Locale newLocale) {
-//Logger.getLogger(this.getClass().getName()).fine("BEFORE price: " + price);
+//LOG.fine("BEFORE price: " + price);
         if(price == null) return null;
 
         Number number = this.priceToNumber(price, oldLocale);
 
         Number fmtNumber = this.convertNumber(number, oldLocale, newLocale);
 
-//Logger.getLogger(this.getClass().getName()).fine("AFTER converted number: " + fmtNumber);
+//LOG.fine("AFTER converted number: " + fmtNumber);
         return fmtNumber;
     }
     
@@ -169,7 +172,7 @@ public abstract class CurrencyFormatter implements Serializable {
      * @return A Number object
      */
     public Number priceToNumber(Object price, Locale locale) {
-//Logger.getLogger(this.getClass().getName()).fine("BEFORE price: " + price);
+//LOG.fine("BEFORE price: " + price);
         if(price == null) return null;
         // If NumberFormat.getCurrencyInstance is not called with any locale
         // as argument then the call to NumberFormat.parse must have an input
@@ -184,7 +187,7 @@ public abstract class CurrencyFormatter implements Serializable {
         }catch(ParseException e) {
             throw new IllegalArgumentException(e);
         }    
-//Logger.getLogger(this.getClass().getName()).fine("AFTER number: " + price);
+//LOG.fine("AFTER number: " + price);
         return output;
     }
 

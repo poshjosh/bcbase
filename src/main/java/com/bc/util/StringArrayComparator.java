@@ -21,16 +21,12 @@ import java.util.Collection;
 /**
  * @author Chinomso Bassey Ikwuagwu on Oct 19, 2016 9:10:42 PM
  */
-public interface StringComparator {
+public interface StringArrayComparator extends StringComparator {
 
     /**
-     * Compares the obj1.toString to obj2.toString. A tolerance of 0.1 means only 10
-     * percent of characters are allowed to be wrong (ie an allowance of 10%)
-     * A tolerance of 0 means obj1.equals(obj2) is used as comparison.
+     * @see #compare(java.lang.String, java.lang.String, float) 
      */
     boolean compare(final Object obj1, final Object obj2, float tolerance);
-
-    int compare(char c1, char c2);
 
     /**
      * Compares the string values of adjacent objects in two arrays of Objects
@@ -42,9 +38,12 @@ public interface StringComparator {
      * array[1] represents the similar values in table one.
      * array[2] represents the similar indices in table two.
      * array[3] represents the similar values in table two.
+     * @deprecated 
      */
+    @Deprecated
     IndexedMap[] compare(Object[] one, Object[] two);
 
+    @Deprecated
     IndexedMap[] compare(Object[] one, Object[] two, float tolerance);
 
     /**
@@ -53,9 +52,12 @@ public interface StringComparator {
      * @param v1
      * @param v2
      * @return
+     * @deprecated 
      */
+    @Deprecated
     IndexedMap[] compare(Collection c1, Collection c2);
 
+    @Deprecated
     IndexedMap[] compare(Collection c1, Collection c2, float tolerance);
 
     /**
@@ -63,15 +65,19 @@ public interface StringComparator {
      * the string value of every object in the second array, as against compare() which
      * which compares adjacent objects in both arrays.
      * @see compare()
+     * @deprecated 
      */
+    @Deprecated
     IndexedMap[] compareAll(Object[] one, Object[] two);
 
+    @Deprecated
     IndexedMap[] compareAll(Object[] one, Object[] two, float tolerance);
 
     // compareAll() compares each element against every other element as against
     // compare() which performs only adjacent comparisons.
+    @Deprecated
     IndexedMap[] compareAll(Collection c1, Collection c2);
 
+    @Deprecated
     IndexedMap[] compareAll(Collection c1, Collection c2, float tolerance);
-
 }

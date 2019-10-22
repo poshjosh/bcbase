@@ -21,6 +21,8 @@ import java.util.logging.Logger;
  * @since    2.0
  */
 public class CharFileOutput extends FileOutput{
+
+    private static final Logger LOG = Logger.getLogger(CharFileOutput.class.getName());
     
     private String charset;
 
@@ -48,13 +50,13 @@ public class CharFileOutput extends FileOutput{
             bw.flush();
         }finally{
             if(bw != null) try{ bw.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(osw != null) try{ osw.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(fos != null) try{ fos.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
     }

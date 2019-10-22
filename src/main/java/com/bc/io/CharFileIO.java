@@ -24,6 +24,8 @@ import java.util.logging.Logger;
  * @since    2.0
  */
 public class CharFileIO extends FileIO {
+
+    private static final Logger LOG = Logger.getLogger(CharFileIO.class.getName());
     
     public CharFileIO() {
         setFileInput(new CharFileInput());
@@ -95,10 +97,10 @@ public class CharFileIO extends FileIO {
             
         }finally{
             if(isr != null) try{ isr.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(osw != null) try{ osw.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
     }

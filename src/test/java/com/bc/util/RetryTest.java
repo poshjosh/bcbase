@@ -22,10 +22,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -35,40 +31,15 @@ import static org.junit.Assert.*;
  */
 public class RetryTest {
     
-    private final boolean debug = false;
     private final int interval = 2_000;
+    private final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
     private final long delay = interval;
     private final int max = 2;
     
-    public RetryTest() {
-    }
-    
-    @BeforeClass
-    public static void setUpClass() {
-    }
-    
-    @AfterClass
-    public static void tearDownClass() {
-    }
-    
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
-    }
+    public RetryTest() { }
 
     /**
-     * Test of apply method, of class Retry.
-     */
-//    @Test
-    public void testApply() {
-        System.out.println("apply");
-    }
-
-    /**
-     * Test of retryOn method, of class Retry.
+     * Test of retryOn method, of class RetryImpl.
      */
 //    @Test
     public void testRetryOn_Callable_Class() {
@@ -76,7 +47,7 @@ public class RetryTest {
     }
 
     /**
-     * Test of retryOn method, of class Retry.
+     * Test of retryOn method, of class RetryImpl.
      */
     @Test
     public void testRetryOn_3args() {
@@ -84,15 +55,15 @@ public class RetryTest {
         final int retryLimit = 3;
         final boolean shouldReturn = true;
         final int failLimit = shouldReturn ? retryLimit - 1 : retryLimit;
-        final Retry instance = new Retry(retryLimit, 2_000);
+        final RetryImpl instance = new RetryImpl(retryLimit, interval, timeUnit);
         instance.retryOn(this.getFailingTask("IOEx", IOException.class, failLimit), IOException.class);
         instance.retryOn(this.getFailingTask("SQLEx", SQLException.class, failLimit), IOException.class);
     }
 
     /**
-     * Test of retryAsyncIf method, of class Retry.
+     * Test of retryAsyncIf method, of class RetryImpl.
      */
-//    @Test
+    @Test
     public void testRetryAsyncIf_3args() {
         this.testRetryAsyncIf_3args("A", true);
         this.testRetryAsyncIf_3args("B", false);
@@ -101,7 +72,7 @@ public class RetryTest {
     public void testRetryAsyncIf_3args(Object id, boolean failAll) {
         System.out.println("retryAsyncIf(Callable, Predicate, long)");
         final int limit = failAll ? max : max -1 ;
-        final Retry instance = new Retry(debug, max, interval);
+        final RetryImpl instance = new RetryImpl(max, interval, timeUnit);
         final Integer outputIfNone = Integer.MIN_VALUE;
         final Integer expResult = failAll ? outputIfNone : limit;
         final Callable<Integer> callable = this.getFailingTask(id, IOException.class, limit);
@@ -115,9 +86,9 @@ public class RetryTest {
     }
 
     /**
-     * Test of retryIf method, of class Retry.
+     * Test of retryIf method, of class RetryImpl.
      */
-//    @Test
+    @Test
     public void testRetryIf_3args() {
         this.testRetryIf_3args(true);
         this.testRetryIf_3args(false);
@@ -126,7 +97,7 @@ public class RetryTest {
     public void testRetryIf_3args(boolean failAll) {
         System.out.println("retryIf(Callable, Predicate, <T>)");
         final int limit = failAll ? max : max -1 ;
-        final Retry instance = new Retry(debug, max, interval);
+        final Retry instance = new RetryImpl(max, interval, timeUnit);
         final Integer outputIfNone = Integer.MIN_VALUE;
         final Integer expResult = failAll ? outputIfNone : limit;
         final Callable<Integer> callable = this.getFailingTask(limit);

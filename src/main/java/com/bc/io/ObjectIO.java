@@ -31,6 +31,8 @@ import java.util.logging.Logger;
  */
 public class ObjectIO<NAME_TYPE> implements Serializable {
 
+    private static final Logger LOG = Logger.getLogger(ObjectIO.class.getName());
+
     private final Function<NAME_TYPE, String> getPathForName;
     
     public ObjectIO(Function<NAME_TYPE, String> getPathForName) {
@@ -67,13 +69,13 @@ public class ObjectIO<NAME_TYPE> implements Serializable {
         boolean result = false;
 
         try {
-//Logger.getLogger(this.getClass().getName()).info("Saving object "+object.getClass().getName()+" to: "+path);
+//LOG.info("Saving object "+object.getClass().getName()+" to: "+path);
             writeObject(path, object);
 
             result = true;
             
         }catch(IOException e) {
-            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+            LOG.log(Level.WARNING, "", e);
         }
 
         return result;
@@ -94,17 +96,14 @@ public class ObjectIO<NAME_TYPE> implements Serializable {
         Object result = null;
 
         try {
-//Logger.getLogger(this.getClass().getName()).info("Loading object from: " + path);
+//LOG.info("Loading object from: " + path);
             result = readObject(path);
 
         }catch(FileNotFoundException e) {
             // Lighter logging, without stack trace
-            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, 
-            "{0}. {1}", new Object[]{this.getClass().getName(), e});
-        }catch(IOException e) {
-            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
-        }catch(ClassNotFoundException e) {
-            Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+            LOG.log(Level.WARNING, e.toString());
+        }catch(IOException | ClassNotFoundException e) {
+            LOG.log(Level.WARNING, "", e);
         }
 
         return result;
@@ -160,9 +159,9 @@ public class ObjectIO<NAME_TYPE> implements Serializable {
         
         }finally {
         
-            if (oos != null) try { oos.close(); }catch(IOException e) { Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e); }
-            if (bos != null) try { bos.close(); }catch(IOException e) { Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e); }
-            if (fos != null) try { fos.close(); }catch(IOException e) { Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e); }
+            if (oos != null) try { oos.close(); }catch(IOException e) { LOG.log(Level.WARNING, "", e); }
+            if (bos != null) try { bos.close(); }catch(IOException e) { LOG.log(Level.WARNING, "", e); }
+            if (fos != null) try { fos.close(); }catch(IOException e) { LOG.log(Level.WARNING, "", e); }
         }
     }
 }//END

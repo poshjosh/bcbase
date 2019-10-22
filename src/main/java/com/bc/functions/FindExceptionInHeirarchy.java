@@ -29,6 +29,13 @@ public class FindExceptionInHeirarchy implements Serializable,
 
     public FindExceptionInHeirarchy() { }
 
+    public <T> Optional<T> apply(Throwable t, Class<T> type) {
+        
+        final Predicate<Throwable> predicate = (e) -> type.isAssignableFrom(e.getClass());
+                
+        return (Optional<T>)this.apply(t, predicate);
+    }
+
     @Override
     public Optional<Throwable> apply(Throwable t, Predicate<Throwable> test) {
         

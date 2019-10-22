@@ -4,9 +4,8 @@ import com.bc.functions.FindExceptionInHeirarchy;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.UnknownHostException;
-import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 /**
  * @(#)RetryConnectionFilter.java   04-Apr-2013 20:05:18
@@ -22,15 +21,16 @@ import java.util.logging.Logger;
  */
 public class RetryConnectionFilter implements Predicate<Throwable>, Serializable {
 
-    private static transient final Logger logger = 
-            Logger.getLogger(RetryConnectionFilter.class.getName());
+    private static transient final Logger LOG = Logger.getLogger(RetryConnectionFilter.class.getName());
 
     private final boolean retryNoConnectionException;
     private final boolean retryFailedConnectionException;
     private final int maxRetrials;
-    private final long retrialInterval;
+    private final long intervalBetweenTrials;
     
-    private final BiFunction<Throwable, Predicate<Throwable>, Optional<Throwable>> findExceptionInChain;
+    private final FindExceptionInHeirarchy findExceptionInChain;
+    private final Predicate<Throwable> noConnectionTest;
+    private final Predicate<Throwable> failedConnectionTest;
     
     private int retrials;
     
@@ -41,7 +41,7 @@ public class RetryConnectionFilter implements Predicate<Throwable>, Serializable
     public RetryConnectionFilter(RetryConnectionFilter filter) {
         this(filter.retryNoConnectionException, 
                 filter.retryFailedConnectionException,
-                filter.maxRetrials, filter.retrialInterval);
+                filter.maxRetrials, filter.intervalBetweenTrials);
     }
 
     public RetryConnectionFilter(
@@ -51,8 +51,15 @@ public class RetryConnectionFilter implements Predicate<Throwable>, Serializable
         this.retryNoConnectionException = retryNoConnectionException;
         this.retryFailedConnectionException = retryFailedConnectionException;
         this.maxRetrials = maxRetrials;
-        this.retrialInterval = retrialInterval;
+        this.intervalBetweenTrials = retrialInterval;
         this.findExceptionInChain = new FindExceptionInHeirarchy();
+        this.noConnectionTest = (t) -> t instanceof UnknownHostException; 
+        this.failedConnectionTest = new FailedConnectionTest();
+    }
+    
+    public RetryConnectionFilter reset() {
+        retrials = 0;
+        return this;
     }
     
     public RetryConnectionFilter copy() {
@@ -65,7 +72,26 @@ public class RetryConnectionFilter implements Predicate<Throwable>, Serializable
     
     @Override
     public synchronized boolean test(Throwable t) {
-        return this.acceptFailedConnectionException(t) || this.acceptNoConnectionException(t);
+        
+        if(retrials > 0) {
+            try{
+                this.wait(this.intervalBetweenTrials);
+            }catch(InterruptedException ie) { 
+                LOG.warning(ie.toString()); 
+                LOG.log(Level.FINE, null, ie);
+            }finally{ 
+                this.notifyAll(); 
+            }
+        }
+
+        try{
+            final boolean result = this.hasMoreTrials() && 
+                    (this.acceptFailedConnectionException(t) || this.acceptNoConnectionException(t));
+
+            return result;
+        }finally{
+            ++retrials;
+        }
     }
 
     /**
@@ -82,7 +108,7 @@ public class RetryConnectionFilter implements Predicate<Throwable>, Serializable
 
         if(!this.retryFailedConnectionException) return false;
         
-        return this.findExceptionInChain.apply(t, new FailedConnectionTest()).isPresent();
+        return this.findExceptionInChain.apply(t, this.failedConnectionTest, null) != null;
     }
 
     /**
@@ -97,30 +123,15 @@ public class RetryConnectionFilter implements Predicate<Throwable>, Serializable
         
         // UnknownHostException usually signals that the internet connection
         // has been lost
-        return this.findExceptionInChain.apply(t, (e) -> e instanceof UnknownHostException).isPresent();
-    }
-    
-    protected synchronized boolean handleException(Throwable t) {
-        
-        ++retrials;
-
-        try{
-            this.wait(this.retrialInterval);
-        }catch(InterruptedException ie) { 
-            logger.fine(() -> ie.toString()); 
-        }finally{ 
-            this.notifyAll(); 
-        }
-
-        return this.hasMoreTrials();
+        return this.findExceptionInChain.apply(t, this.noConnectionTest, null) != null;
     }
     
     public boolean hasMoreTrials() {
         return this.retrials < maxRetrials;
     }
 
-    public long getSleepTime() {
-        return retrialInterval;
+    public long getIntervalBetweenTrials() {
+        return intervalBetweenTrials;
     }
 
     public boolean isRetryFailedConnectionException() {

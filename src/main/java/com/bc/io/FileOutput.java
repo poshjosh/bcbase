@@ -20,6 +20,8 @@ import java.util.logging.Logger;
  */
 public class FileOutput implements Serializable {
 
+    private static final Logger LOG = Logger.getLogger(FileOutput.class.getName());
+
     public File write(String src, String dest, boolean rotate) throws IOException{
         return write(src.getBytes(), new File(dest), rotate);
     }
@@ -82,7 +84,7 @@ public class FileOutput implements Serializable {
             out.write(src);
         }finally{
             if(out != null) try{ out.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
     }

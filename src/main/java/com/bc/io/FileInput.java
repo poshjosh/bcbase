@@ -6,6 +6,7 @@
  */
 package com.bc.io;
 
+import java.io.DataInput;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -22,6 +23,8 @@ import java.util.logging.Logger;
  * @since   1.0
  */
 public class FileInput implements Serializable {
+
+    private static final Logger LOG = Logger.getLogger(FileInput.class.getName());
     
     private int bufferSize = 0x800; // 2K chars (4K bytes) 
 
@@ -37,10 +40,12 @@ public class FileInput implements Serializable {
         FileInputStream fis = new FileInputStream(source);
 
         int sourceLength = (int)source.length();
-Logger.getLogger(this.getClass().getName()).log(Level.FINE, 
-        "{0}. Source: {1}, source length: {2}", 
-        new Object[]{this.getClass().getName(), source, sourceLength});
-
+        
+        if(LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "Source: {0}, source length: {1}", 
+                new Object[]{source, sourceLength});
+        }
+        
         return read(fis, sourceLength);
     }
     
@@ -58,11 +63,11 @@ Logger.getLogger(this.getClass().getName()).log(Level.FINE,
 
             int read = in.read(arr);
 
-Logger.getLogger(this.getClass().getName()).log(Level.FINE, "{0}. Read: {1}", 
-        new Object[]{this.getClass().getName(), read});
+            LOG.log(Level.FINE, "Read: {0}", read);
+            
         }finally{
             if(in != null) try{ in.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
 

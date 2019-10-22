@@ -23,14 +23,6 @@ package com.bc.selection;
  */
 public interface Selection<T> {
     
-    static <X> Selection<X> from(X value) {
-        return from(String.valueOf(value), value);
-    }
-
-    static <X> Selection<X> from(String displayValue, X value) {
-        return new SelectionImpl(displayValue, value);
-    }
-    
     T getValue();
     
     String getDisplayValue();

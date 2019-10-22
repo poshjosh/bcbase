@@ -36,7 +36,7 @@ public interface SelectionValues<K> {
             if(noSelection != null) {
                 selectionValues.add(noSelection);
             }
-            final Function<T, Selection> mapper = (t) -> Selection.from(t);
+            final Function<T, Selection> mapper = (t) -> new SelectionImpl(String.valueOf(t), t);
             values.stream().map(mapper).forEach((s) -> selectionValues.add(s));
             return selectionValues;
         };

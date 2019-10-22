@@ -222,10 +222,10 @@ public class FileIO implements Serializable {
             
         }finally{
             if(fis != null) try{ fis.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(fos != null) try{ fos.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
     }
@@ -403,7 +403,9 @@ public class FileIO implements Serializable {
 
         final String newPath = oldFile.getParent() + "/" + newName;
 
-        LOG.fine(() -> "Old path: "+oldFile+", new path: "+newPath);
+        if(LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "Old path: "+oldFile+", new path: "+newPath);
+        }
         
         File newFile = new File(newPath);
         if(newFile.exists()) {
@@ -604,16 +606,16 @@ public class FileIO implements Serializable {
             
         }finally{
             if(bis != null) try{ bis.close(); }catch(IOException e){
-                logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(fis != null) try{ fis.close(); }catch(IOException e){
-                logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(bos != null) try{ bos.close(); }catch(IOException e){
-                logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
             if(fos != null) try{ fos.close(); }catch(IOException e){
-                logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
     }

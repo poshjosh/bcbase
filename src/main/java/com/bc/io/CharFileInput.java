@@ -52,9 +52,11 @@ public class CharFileInput extends FileInput {
         if(!source.exists()) throw new FileNotFoundException(source.getPath());
 
         int sourceLength = (int)source.length();
-Logger.getLogger(this.getClass().getName()).log(Level.FINE, 
-"{0}. Source: {1}, source length: {2}", new Object[]{this.getClass().getName(), source, sourceLength});
-
+        
+        if(LOG.isLoggable(Level.FINE)) {
+            LOG.log(Level.FINE, "Source: {0}, source length: {1}", new Object[]{source, sourceLength});
+        }
+        
         FileInputStream fis = null;
         InputStreamReader isr = null;
         BufferedReader br = null;
@@ -152,11 +154,12 @@ Logger.getLogger(this.getClass().getName()).log(Level.FINE,
             int read = reader.read(buff);
 
             buff.flip();
-Logger.getLogger(this.getClass().getName()).log(Level.FINE, "{0}. Read: {1}", 
-        new Object[]{this.getClass().getName(), read});
+            
+            LOG.log(Level.FINE, "Read: {0}", read);
+
         }finally{
             if(reader != null) try{ reader.close(); }catch(IOException e){
-                Logger.getLogger(this.getClass().getName()).log(Level.WARNING, "", e);
+                LOG.log(Level.WARNING, "", e);
             }
         }
 
