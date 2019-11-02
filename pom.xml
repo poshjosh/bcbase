@@ -16,6 +16,11 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>bcutil</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>bchtmlparser</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
@@ -29,4 +34,8 @@
             <artifactId>hamcrest-core</artifactId>
         </dependency>
     </dependencies>
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 </project>
