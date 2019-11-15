@@ -26,7 +26,7 @@ import java.util.function.Function;
  */
 public interface SelectionValues<K> {
     
-    static <T> SelectionValues from(final Collection values) {
+    static <T> SelectionValues from(final Collection<T> values) {
         return from(null, values);
     }
     
